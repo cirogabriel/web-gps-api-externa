@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+:root {
+  /* Light theme colors - inverted from dark original */
+  --background: 0 0% 98%; /* Light background */
+  --foreground: 0 0% 10%; /* Dark text */
+  --card: 0 0% 100%; /* White card background */
+  --card-foreground: 0 0% 10%;
+  --popover: 0 0% 100%; /* Popover background */
+  --popover-foreground: 0 0% 10%;
+  --primary: 0 0% 10%; /* Primary dark background for buttons */
+  --primary-foreground: 0 0% 98%;
+  --secondary: 0 0% 94%; /* Secondary elements */
+  --secondary-foreground: 0 0% 10%;
+  --muted: 0 0% 90%; /* Muted elements */
+  --muted-foreground: 0 0% 45%;
+  --accent: 45 93% 47%; /* Golden yellow accent */
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 90%;
+  --input: 0 0% 94%;
+  --ring: 45 93% 47%; /* Golden focus ring */
+  --radius: 0.5rem;
+}
