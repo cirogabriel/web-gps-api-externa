@@ -1,10 +1,22 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Wrapper } from '@googlemaps/react-wrapper';
 
 const MapComponent = ({ location, isTracking }) => {
   const mapRef = useRef(null);
   const [map, setMap] = useState(null);
-  const [marker, setMarker] = useState(null);
+  const markerRef = useRef(null);
+  const accuracyCircleRef = useRef(null);
+
+  // Función optimizada para crear el ícono
+  const createIcon = useCallback(() => ({
+    path: `M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z`,
+    fillColor: '#EF4444', // Rojo vibrante para mejor visibilidad
+    fillOpacity: 1,
+    strokeColor: '#FFFFFF',
+    strokeWeight: 3,
+    scale: 2,
+    anchor: { x: 12, y: 24 },
+  }), []);
 
   // Inicializar mapa
   useEffect(() => {
@@ -15,11 +27,14 @@ const MapComponent = ({ location, isTracking }) => {
       
       const newMap = new window.google.maps.Map(mapRef.current, {
         center: center,
-        zoom: location ? 15 : 10,
+        zoom: location ? 16 : 10, // Zoom más cercano para mejor detalle
         mapTypeControl: false,
         fullscreenControl: false,
         streetViewControl: false,
         zoomControl: true,
+        zoomControlOptions: {
+          position: window.google.maps.ControlPosition.RIGHT_BOTTOM,
+        },
         styles: [
           {
             featureType: "all",
@@ -60,6 +75,12 @@ const MapComponent = ({ location, isTracking }) => {
             featureType: "poi",
             elementType: "geometry",
             stylers: [{ color: "#f5f5f5" }, { lightness: 21 }]
+          },
+          // Ocultar algunos iconos de POI para reducir confusión
+          {
+            featureType: "poi.business",
+            elementType: "labels",
+            stylers: [{ visibility: "off" }]
           }
         ]
       });
@@ -69,43 +90,56 @@ const MapComponent = ({ location, isTracking }) => {
 
   useEffect(() => {
     if (map && location) {
-      // Actualizar centro del mapa
       const newCenter = { lat: location.latitude, lng: location.longitude };
-      map.setCenter(newCenter);
+      
+      // Solo actualizar centro del mapa suavemente
+      map.panTo(newCenter);
 
-      // Crear o actualizar marcador
-      if (marker) {
-        marker.setPosition(newCenter);
-      } else {
-        const newMarker = new window.google.maps.Marker({
+      // Si no existe marcador, crearlo una sola vez
+      if (!markerRef.current) {
+        markerRef.current = new window.google.maps.Marker({
           position: newCenter,
           map: map,
-          icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            fillColor: isTracking ? '#22c55e' : '#6b7280',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 2,
-            scale: 8,
-          },
-          title: 'Tu ubicación'
+          icon: createIcon(),
+          title: `📍 Tu ubicación actual`,
+          optimized: false,
         });
-        setMarker(newMarker);
-      }
 
-      // Actualizar color del marcador según el estado de tracking
-      if (marker) {
-        marker.setIcon({
-          path: window.google.maps.SymbolPath.CIRCLE,
-          fillColor: isTracking ? '#22c55e' : '#6b7280',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
+        // Crear círculo de precisión una sola vez
+        accuracyCircleRef.current = new window.google.maps.Circle({
+          strokeColor: '#EF4444', // Rojo para mejor visibilidad
+          strokeOpacity: 0.3,
           strokeWeight: 2,
-          scale: 8,
+          fillColor: '#EF4444', // Rojo para mejor visibilidad
+          fillOpacity: 0.1,
+          map: map,
+          center: newCenter,
+          radius: Math.max(location.accuracy, 15),
         });
+      } else {
+        // Solo actualizar posición del marcador existente
+        markerRef.current.setPosition(newCenter);
+        if (accuracyCircleRef.current) {
+          accuracyCircleRef.current.setCenter(newCenter);
+          accuracyCircleRef.current.setRadius(Math.max(location.accuracy, 15));
+        }
       }
     }
-  }, [map, location, isTracking, marker]);
+  }, [map, location, createIcon]);
+
+  // useEffect separado para cambios de estado de tracking (sin recrear marcador)
+  useEffect(() => {
+    if (markerRef.current && accuracyCircleRef.current) {
+      // Mantener el ícono rojo siempre (sin cambios por estado)
+      markerRef.current.setIcon(createIcon());
+      
+      // Actualizar círculo de precisión
+      accuracyCircleRef.current.setOptions({
+        strokeColor: '#EF4444', // Rojo vibrante
+        fillColor: '#EF4444', // Rojo vibrante
+      });
+    }
+  }, [isTracking, createIcon]);
 
   return (
     <div 
