@@ -2,7 +2,7 @@ import React from "react"
 import { cn } from "../../lib/utils"
 
 const badgeVariants = (variant = "default") => {
-  const baseClasses = "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
+  const baseClasses = "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
   
   const variants = {
     default: "border-transparent bg-gray-900 text-white hover:bg-gray-800",

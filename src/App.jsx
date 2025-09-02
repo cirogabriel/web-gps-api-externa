@@ -83,8 +83,8 @@ export default function GPSTracker() {
         {/* Sidebar Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-yellow-100">
-              <Satellite className="w-5 h-5 text-yellow-600" />
+            <div className="p-2 rounded-lg bg-gray-100">
+              <Satellite className="w-5 h-5 text-black" />
             </div>
             <div>
               <h1 className="text-lg font-semibold text-gray-900">GPS Tracker</h1>
@@ -103,7 +103,7 @@ export default function GPSTracker() {
             <input
               type="text"
               placeholder="Buscar ubicación..."
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500"
+              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black"
             />
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function GPSTracker() {
           <div className="p-4 space-y-4">
             <Card className="p-4 bg-white border-gray-200 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
-                <MapPin className="w-4 h-4 text-yellow-600" />
+                <MapPin className="w-4 h-4 text-black" />
                 <h3 className="text-sm font-semibold text-gray-900">Ubicación Actual</h3>
               </div>
 
@@ -192,13 +192,13 @@ export default function GPSTracker() {
             <div className="grid grid-cols-2 gap-2">
               <Card className="p-3 bg-white border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer shadow-sm">
                 <div className="text-center">
-                  <Route className="w-5 h-5 text-yellow-600 mx-auto mb-1" />
+                  <Route className="w-5 h-5 text-black mx-auto mb-1" />
                   <p className="text-xs font-medium text-gray-900">Rutas</p>
                 </div>
               </Card>
               <Card className="p-3 bg-white border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer shadow-sm">
                 <div className="text-center">
-                  <Clock className="w-5 h-5 text-yellow-600 mx-auto mb-1" />
+                  <Clock className="w-5 h-5 text-black mx-auto mb-1" />
                   <p className="text-xs font-medium text-gray-900">Historial</p>
                 </div>
               </Card>
@@ -223,8 +223,8 @@ export default function GPSTracker() {
             <Menu className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-yellow-100">
-              <Satellite className="w-4 h-4 text-yellow-600" />
+            <div className="p-1.5 rounded-lg bg-gray-100">
+              <Satellite className="w-4 h-4 text-black" />
             </div>
             <span className="font-semibold text-sm text-gray-900">GPS Tracker</span>
           </div>
@@ -265,7 +265,7 @@ export default function GPSTracker() {
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
               <div className="p-6 rounded-full bg-white/90 backdrop-blur-sm border border-gray-200 mb-4 shadow-lg">
-                <MapPin className="w-12 h-12 text-yellow-600 mx-auto" />
+                <MapPin className="w-12 h-12 text-black mx-auto" />
               </div>
               <h3 className="text-lg font-semibold mb-2 text-gray-900">Mapa Interactivo</h3>
               <p className="text-gray-600 max-w-sm">
