@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { Card } from "./components/ui/card"
 import { Button } from "./components/ui/button"
 import { Badge } from "./components/ui/badge"
+import { Modal, ModalHeader, ModalTitle, ModalContent, ModalFooter } from "./components/ui/modal"
 import { MapPin, Navigation, Clock, Satellite, Settings, User, Menu, Search, Layers, Route } from "lucide-react"
 
 export default function GPSTracker() {
@@ -10,6 +11,7 @@ export default function GPSTracker() {
   const [error, setError] = useState(null)
   const [watchId, setWatchId] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [authorModalOpen, setAuthorModalOpen] = useState(false)
 
   const startTracking = () => {
     if (!navigator.geolocation) {
@@ -80,6 +82,8 @@ export default function GPSTracker() {
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
       `}
       >
+        {/* Sidebar Content Container with relative positioning */}
+        <div className="relative h-full flex flex-col">
         {/* Sidebar Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
@@ -141,6 +145,19 @@ export default function GPSTracker() {
           </Card>
         </div>
 
+        {/* Author Button - Circular button at bottom left corner */}
+        {!isTracking && (
+          <div className="absolute bottom-4 left-4">
+            <Button
+              onClick={() => setAuthorModalOpen(true)}
+              size="icon"
+              className="w-12 h-12 rounded-full bg-gray-300 hover:bg-gray-400 text-black shadow-lg"
+            >
+              <User className="w-5 h-5 text-black" />
+            </Button>
+          </div>
+        )}
+
         {/* Location Details */}
         {location && (
           <div className="p-4 space-y-4">
@@ -190,10 +207,13 @@ export default function GPSTracker() {
 
             {/* Quick Actions */}
             <div className="grid grid-cols-2 gap-2">
-              <Card className="p-3 bg-white border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer shadow-sm">
+              <Card 
+                className="p-3 bg-white border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer shadow-sm"
+                onClick={() => setAuthorModalOpen(true)}
+              >
                 <div className="text-center">
-                  <Route className="w-5 h-5 text-black mx-auto mb-1" />
-                  <p className="text-xs font-medium text-gray-900">Rutas</p>
+                  <User className="w-5 h-5 text-black mx-auto mb-1" />
+                  <p className="text-xs font-medium text-gray-900">Autor</p>
                 </div>
               </Card>
               <Card className="p-3 bg-white border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer shadow-sm">
@@ -214,6 +234,7 @@ export default function GPSTracker() {
             </Card>
           </div>
         )}
+        </div>
       </div>
 
       <div className="flex-1 flex flex-col">
@@ -245,9 +266,14 @@ export default function GPSTracker() {
               <Layers className="w-4 h-4 mr-2" />
               Capas
             </Button>
-            <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-              <Route className="w-4 h-4 mr-2" />
-              Rutas
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              onClick={() => setAuthorModalOpen(true)}
+            >
+              <User className="w-4 h-4 mr-2" />
+              Autor
             </Button>
           </div>
           <div className="flex gap-2">
@@ -298,6 +324,60 @@ export default function GPSTracker() {
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/30 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
+
+      {/* Author Modal */}
+      <Modal isOpen={authorModalOpen} onClose={() => setAuthorModalOpen(false)}>
+        <ModalHeader>
+          <ModalTitle>Información del Autor</ModalTitle>
+        </ModalHeader>
+        
+        <ModalContent>
+          <div className="space-y-4">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <User className="w-8 h-8 text-black" />
+              </div>
+            </div>
+            
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="font-medium text-gray-600">Nombre:</span>
+                <span className="text-gray-900">Ciro Gabriel Callapiña Castilla</span>
+              </div>
+              
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="font-medium text-gray-600">Número:</span>
+                <span className="text-gray-900">5</span>
+              </div>
+              
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="font-medium text-gray-600">Curso:</span>
+                <span className="text-gray-900">Sistemas Embebidos</span>
+              </div>
+              
+              <div className="flex justify-between py-2">
+                <span className="font-medium text-gray-600">Docente:</span>
+                <span className="text-gray-900">José Mauro Pillco Quispe</span>
+              </div>
+            </div>
+            
+            <div className="mt-6 p-3 bg-gray-50 rounded-lg">
+              <p className="text-xs text-gray-600 text-center">
+                Aplicación GPS Tracker desarrollada como proyecto de Sistemas Embebidos
+              </p>
+            </div>
+          </div>
+        </ModalContent>
+        
+        <ModalFooter>
+          <Button 
+            onClick={() => setAuthorModalOpen(false)}
+            className="bg-black text-white hover:bg-gray-800"
+          >
+            Cerrar
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   )
 }
