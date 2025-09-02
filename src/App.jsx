@@ -4,6 +4,7 @@ import { Button } from "./components/ui/button"
 import { Badge } from "./components/ui/badge"
 import { Modal, ModalHeader, ModalTitle, ModalContent, ModalFooter } from "./components/ui/modal"
 import { MapPin, Navigation, Clock, Satellite, Settings, User, Menu, Search, Layers, Route } from "lucide-react"
+import GoogleMap from "./components/GoogleMap"
 
 export default function GPSTracker() {
   const [location, setLocation] = useState(null)
@@ -288,26 +289,7 @@ export default function GPSTracker() {
 
         {/* Map Container */}
         <div className="flex-1 relative bg-gray-100">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <div className="p-6 rounded-full bg-white/90 backdrop-blur-sm border border-gray-200 mb-4 shadow-lg">
-                <MapPin className="w-12 h-12 text-black mx-auto" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2 text-gray-900">Mapa Interactivo</h3>
-              <p className="text-gray-600 max-w-sm">
-                {location
-                  ? "Tu ubicación se mostrará aquí en tiempo real"
-                  : "Inicia el seguimiento para ver tu ubicación en el mapa"}
-              </p>
-              {location && (
-                <div className="mt-4 p-3 bg-gray-800 backdrop-blur-sm rounded-lg border border-gray-300 inline-block">
-                  <p className="text-sm font-mono text-white">
-                    {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+          <GoogleMap location={location} isTracking={isTracking} />
 
           {/* Floating Controls */}
           <div className="absolute bottom-6 right-6 flex flex-col gap-2">
