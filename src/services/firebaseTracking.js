@@ -2,30 +2,18 @@
 import { initializeApp } from 'firebase/app'
 import { getDatabase, ref, onValue, set } from 'firebase/database'
 
-// Tu configuración de Firebase (debes crear un proyecto en Firebase Console)
+// Tu configuración de Firebase
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  apiKey: "AIzaSyDbPpPjBx7_zCURsko7hirzhyoVpuWhsg8",
+  authDomain: "gps-tracker-ccfc7.firebaseapp.com",
+  databaseURL: "https://gps-tracker-ccfc7-default-rtdb.firebaseio.com",
+  projectId: "gps-tracker-ccfc7",
+  storageBucket: "gps-tracker-ccfc7.firebasestorage.app",
+  messagingSenderId: "816013828212",
+  appId: "1:816013828212:web:9a92e804c7f7170a88b121"
 }
 
-// Configuración de fallback para desarrollo (usa tu propia configuración)
-const fallbackConfig = {
-  apiKey: "demo-api-key",
-  authDomain: "gps-tracker-demo.firebaseapp.com",
-  databaseURL: "https://gps-tracker-demo-default-rtdb.firebaseio.com/",
-  projectId: "gps-tracker-demo",
-  storageBucket: "gps-tracker-demo.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:demo"
-}
-
-const config = firebaseConfig.apiKey ? firebaseConfig : fallbackConfig
-const app = initializeApp(config)
+const app = initializeApp(firebaseConfig)
 const database = getDatabase(app)
 
 // Servicio para manejo de tracking en tiempo real
