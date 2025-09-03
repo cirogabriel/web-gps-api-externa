@@ -3,38 +3,59 @@ import { Card } from "./components/ui/card"
 import { Button } from "./components/ui/button"
 import { Badge } from "./components/ui/badge"
 import { Modal, ModalHeader, ModalTitle, ModalContent, ModalFooter } from "./components/ui/modal"
-import { MapPin, Navigation, Clock, Satellite, Settings, User, Menu, Search, Layers, Route, Wifi, Globe } from "lucide-react"
+import { MapPin, Navigation, Clock, Satellite, Settings, User, Menu, Search, Layers, Route, Wifi, Globe, Users, Share2, Copy } from "lucide-react"
 import GoogleMap from "./components/GoogleMap"
+import ModeSelector from "./components/ModeSelector"
+import UsersList from "./components/UsersList"
 import { useHybridGeolocation } from "./hooks/useExternalGeolocation"
+import { useTracker, useLocationWatcher } from "./hooks/useRealTimeTracking"
 
 export default function GPSTracker() {
   const [isTracking, setIsTracking] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [authorModalOpen, setAuthorModalOpen] = useState(false)
+  const [appMode, setAppMode] = useState(null) // null, 'tracker', 'watcher'
   
-  // Usar el hook híbrido que funciona con HTTP y HTTPS
-  const { location, error, loading, locationSource, getCurrentPosition, startWatching, stopWatching } = useHybridGeolocation()
+  // Hook para geolocalización local
+  const { location: localLocation, error, loading, locationSource, getCurrentPosition, startWatching, stopWatching } = useHybridGeolocation()
+  
+  // Hook para ser rastreado (compartir ubicación)
+  const { trackerId, isSharing, shareLocation, startSharing, stopSharing } = useTracker('Usuario GPS')
+  
+  // Hook para observar otros usuarios
+  const { watchedUsers, currentLocation: watchedLocation, watchedUserId, watchUser, stopWatching: stopWatchingUser } = useLocationWatcher()
+  
+  // Ubicación a mostrar (local o de usuario observado)
+  const location = appMode === 'watcher' ? watchedLocation : localLocation
 
   const startTracking = () => {
     if (isTracking) return
     
     console.log("[GPS Tracker] Iniciando seguimiento...")
     
-    // Si no hay ubicación actual, obtener una primera ubicación
-    if (!location) {
+    // Iniciar tracking local
+    if (!localLocation) {
       getCurrentPosition().then(() => {
-        // Después de obtener la ubicación, iniciar el tracking
         startWatching()
         setIsTracking(true)
+        
+        // Si está en modo tracker, también iniciar sharing
+        if (appMode === 'tracker') {
+          startSharing()
+        }
       }).catch(() => {
-        // Si falla, intentar tracking de todas formas (puede funcionar con IP)
         startWatching()
         setIsTracking(true)
+        if (appMode === 'tracker') {
+          startSharing()
+        }
       })
     } else {
-      // Si ya hay ubicación, iniciar tracking directamente
       startWatching()
       setIsTracking(true)
+      if (appMode === 'tracker') {
+        startSharing()
+      }
     }
   }
 
@@ -42,6 +63,31 @@ export default function GPSTracker() {
     console.log("[GPS Tracker] Deteniendo seguimiento...")
     stopWatching()
     setIsTracking(false)
+    
+    // Si está compartiendo, detener también
+    if (appMode === 'tracker') {
+      stopSharing()
+    }
+  }
+
+  // Compartir ubicación cuando cambie (solo en modo tracker)
+  useEffect(() => {
+    if (appMode === 'tracker' && isSharing && localLocation && isTracking) {
+      shareLocation(localLocation)
+    }
+  }, [appMode, isSharing, localLocation, isTracking, shareLocation])
+
+  // Manejar cambio de modo
+  const handleModeSelect = (mode) => {
+    setAppMode(mode)
+    if (isTracking) {
+      stopTracking()
+    }
+    if (mode === 'tracker') {
+      console.log("[App] Modo Tracker seleccionado")
+    } else if (mode === 'watcher') {
+      console.log("[App] Modo Observador seleccionado")
+    }
   }
 
   const openInGoogleMaps = () => {
@@ -75,11 +121,21 @@ export default function GPSTracker() {
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-gray-100">
-              <Satellite className="w-5 h-5 text-black" />
+              {appMode === 'tracker' ? (
+                <Share2 className="w-5 h-5 text-blue-600" />
+              ) : appMode === 'watcher' ? (
+                <Users className="w-5 h-5 text-green-600" />
+              ) : (
+                <Satellite className="w-5 h-5 text-black" />
+              )}
             </div>
             <div>
               <h1 className="text-lg font-semibold text-gray-900">GPS Tracker</h1>
-              <p className="text-xs text-gray-600">Seguimiento premium</p>
+              <p className="text-xs text-gray-600">
+                {appMode === 'tracker' ? 'Compartiendo ubicación' : 
+                 appMode === 'watcher' ? 'Observando usuarios' : 
+                 'Selecciona modo'}
+              </p>
             </div>
           </div>
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(false)}>
@@ -87,60 +143,95 @@ export default function GPSTracker() {
           </Button>
         </div>
 
-        {/* Search Bar - Google Maps style */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar ubicación..."
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-black"
-            />
-          </div>
-        </div>
+        {/* Selector de modo */}
+        {!appMode && <ModeSelector onModeSelect={handleModeSelect} currentMode={appMode} />}
 
-        {/* Status Card */}
-        <div className="p-4">
-          <Card className="p-4 bg-white border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${isTracking ? "bg-green-500" : "bg-gray-400"}`} />
-                <span className="text-sm font-medium text-gray-900">{isTracking ? "Rastreando" : "Detenido"}</span>
+        {/* Lista de usuarios (modo observador) */}
+        {appMode === 'watcher' && (
+          <UsersList 
+            users={watchedUsers} 
+            watchedUserId={watchedUserId} 
+            onWatchUser={watchUser} 
+            onStopWatching={stopWatchingUser} 
+          />
+        )}
+
+        {/* Controles de tracking (ambos modos) */}
+        {appMode && (
+          <div className="p-4">
+            <Card className="p-4 bg-white border-gray-200 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${
+                    (appMode === 'tracker' ? isSharing : watchedUserId) 
+                      ? "bg-green-500" 
+                      : isTracking ? "bg-blue-500" : "bg-gray-400"
+                  }`} />
+                  <span className="text-sm font-medium text-gray-900">
+                    {appMode === 'tracker' 
+                      ? (isSharing ? "Compartiendo" : isTracking ? "Rastreando" : "Detenido")
+                      : (watchedUserId ? "Observando" : "Sin seleccionar")
+                    }
+                  </span>
+                </div>
+                <Badge className={`text-xs px-2 py-1 rounded-full font-medium ${
+                  (appMode === 'tracker' ? isSharing : watchedUserId)
+                    ? "bg-green-100 text-green-700"
+                    : isTracking ? "bg-blue-100 text-blue-700" : "bg-gray-200 text-gray-700"
+                }`}>
+                  {appMode === 'tracker' 
+                    ? (isSharing ? "COMPARTIENDO" : isTracking ? "RASTREANDO" : "INACTIVO")
+                    : (watchedUserId ? "OBSERVANDO" : "INACTIVO")
+                  }
+                </Badge>
               </div>
-              <Badge
-                className={`text-xs px-2 py-1 rounded-full font-medium ${
-                  isTracking 
-                    ? "bg-black text-white" 
-                    : "bg-gray-200 text-gray-700"
-                }`}
-              >
-                {isTracking ? "ACTIVO" : "INACTIVO"}
-              </Badge>
-            </div>
 
-            <Button
-              onClick={isTracking ? stopTracking : startTracking}
-              disabled={loading}
-              className={`w-full text-sm font-medium rounded-lg py-2.5 transition-colors disabled:opacity-50 ${
-                isTracking 
-                  ? "bg-red-600 hover:bg-red-700 text-white" 
-                  : "bg-black hover:bg-gray-900 text-white"
-              }`}
-            >
-              {loading ? (
-                <>
-                  <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Obteniendo ubicación...
-                </>
-              ) : (
-                <>
-                  <Navigation className="w-4 h-4 mr-2" />
-                  {isTracking ? "Detener" : "Iniciar"}
-                </>
+              {appMode === 'tracker' && (
+                <Button
+                  onClick={isTracking ? stopTracking : startTracking}
+                  disabled={loading}
+                  className={`w-full text-sm font-medium rounded-lg py-2.5 transition-colors disabled:opacity-50 ${
+                    isTracking 
+                      ? "bg-red-600 hover:bg-red-700 text-white" 
+                      : "bg-blue-600 hover:bg-blue-700 text-white"
+                  }`}
+                >
+                  {loading ? (
+                    <>
+                      <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Obteniendo ubicación...
+                    </>
+                  ) : (
+                    <>
+                      <Navigation className="w-4 h-4 mr-2" />
+                      {isTracking ? "Detener Compartir" : "Iniciar Compartir"}
+                    </>
+                  )}
+                </Button>
               )}
-            </Button>
-          </Card>
-        </div>
+
+              {/* Mostrar ID del tracker */}
+              {appMode === 'tracker' && trackerId && (
+                <div className="mt-3 p-2 bg-blue-50 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-blue-600 font-medium">Tu ID:</p>
+                      <p className="text-xs font-mono text-blue-800">{trackerId.substring(0, 8)}...</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => navigator.clipboard.writeText(trackerId)}
+                      className="text-blue-600 hover:text-blue-700"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
 
         {/* Author Button - Circular button at bottom left corner */}
         {!isTracking && (
