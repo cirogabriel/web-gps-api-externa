@@ -1,15 +1,32 @@
 # GPS Tracker - Seguimiento en Tiempo Real
 
-Una aplicación web moderna para el seguimiento GPS en tiempo real utilizando React + Vite y Google Maps API.
+Una aplicación web moderna para el seguimiento GPS en tiempo real utilizando React + Vite y Google Maps API. **¡Funciona tanto con HTTP como HTTPS!**
 
 ## 🚀 Características
 
-- **Seguimiento GPS en tiempo real** - Obtiene y muestra la ubicación actual del dispositivo
-- **Interfaz moderna** - Diseño limpio con colores claros y acentos dorados
+- **Seguimiento GPS híbrido** - Usa GPS del dispositivo cuando está disponible, geolocalización por IP como fallback
+- **Compatible con HTTP/HTTPS** - Funciona en deployments sin certificado SSL
+- **Seguimiento en tiempo real** - Obtiene y muestra la ubicación actual del dispositivo
+- **Interfaz moderna** - Diseño limpio con colores claros y información de fuente
 - **Responsive** - Funciona perfectamente en dispositivos móviles y desktop
-- **Google Maps Integration** - Integración lista para Google Maps API
-- **Información detallada** - Muestra coordenadas, precisión, velocidad y más
+- **Google Maps Integration** - Integración con Google Maps API
+- **Información detallada** - Muestra coordenadas, precisión, velocidad, fuente de datos y más
 - **Control de seguimiento** - Inicio/parada del seguimiento con un solo clic
+- **APIs múltiples** - Usa múltiples proveedores de geolocalización para mayor confiabilidad
+
+## 🌐 Compatibilidad HTTP/HTTPS
+
+### HTTPS (Sitios seguros)
+- Usa la API de geolocalización del navegador
+- Alta precisión (GPS del dispositivo)
+- Seguimiento en tiempo real
+- Velocidad y dirección disponibles
+
+### HTTP (Deployments sin SSL como EC2)
+- Usa geolocalización por IP automáticamente
+- Precisión aproximada (nivel de ciudad)
+- Actualizaciones cada 30 segundos
+- Compatible con servidores simples
 
 ## 🛠️ Tecnologías Utilizadas
 
@@ -18,7 +35,8 @@ Una aplicación web moderna para el seguimiento GPS en tiempo real utilizando Re
 - **Tailwind CSS** - Framework CSS utilitario
 - **Lucide React** - Iconos modernos
 - **Geolocation API** - API nativa para obtener ubicación
-- **Google Maps API** - (Próximamente) Para mostrar mapas interactivos
+- **Google Maps API** - Para mostrar mapas interactivos
+- **APIs de Geolocalización Externa** - IPinfo, ipapi.co para fallback HTTP
 
 ## 📦 Instalación
 
@@ -101,7 +119,7 @@ Todos los componentes UI están en `src/components/ui/` y pueden ser personaliza
 
 ## 🚀 Despliegue
 
-### Desarrollo
+### Desarrollo Local
 ```bash
 npm run dev
 ```
@@ -112,24 +130,57 @@ npm run build
 npm run preview
 ```
 
-### Netlify/Vercel
+### Deploy en EC2/Servidores HTTP
+Esta aplicación está optimizada para funcionar en servidores HTTP simples:
+
+1. **Construye la aplicación**
+   ```bash
+   npm run build
+   ```
+
+2. **Copia los archivos** del directorio `dist/` a tu servidor
+
+3. **Sirve los archivos estáticos** con cualquier servidor web:
+   ```bash
+   # Con Python
+   python -m http.server 3000
+   
+   # Con Node.js
+   npx serve -s dist -p 3000
+   
+   # Con nginx o Apache
+   # Simplemente apunta el documento root a la carpeta dist/
+   ```
+
+4. **Accede a tu aplicación** - Funciona perfectamente con `http://tu-ip-publica:3000`
+
+### Netlify/Vercel (HTTPS automático)
 1. Conecta tu repositorio
 2. Configura las variables de entorno
 3. Despliega automáticamente
 
-## 🔒 Seguridad
+## 🔒 Seguridad y APIs
 
-- ⚠️ **Nunca expongas tu API key de Google Maps en el código cliente**
-- 🔒 Configura restricciones en Google Cloud Console
-- 🌐 Limita los dominios donde puede usarse la API key
-- 📊 Monitorea el uso de la API regularmente
+### Variables de Entorno Opcionales
+```env
+VITE_GOOGLE_MAPS_API_KEY=tu_google_maps_api_key
+VITE_IPINFO_TOKEN=tu_token_ipinfo_opcional
+```
+
+### APIs Utilizadas
+- **Navegador (HTTPS)**: API de Geolocalización nativa
+- **IP Geolocation (HTTP/HTTPS)**: ipapi.co (gratuita) + ipinfo.io (fallback)
+- **Google Maps**: Para visualización de mapas
 
 ## 🐛 Solución de Problemas
 
-### La ubicación no funciona
-- Verifica que el navegador soporte Geolocation API
-- Asegúrate de estar usando HTTPS (requerido para geolocation)
-- Revisa que el usuario haya dado permisos de ubicación
+### La ubicación no funciona en HTTP
+✅ **¡Ya no es un problema!** La aplicación ahora usa geolocalización por IP como fallback.
+
+### HTTPS vs HTTP
+- **HTTPS**: Usa GPS del dispositivo (precisión de metros)
+- **HTTP**: Usa geolocalización por IP (precisión de kilómetros)
+- **Ambos funcionan** automáticamente sin configuración adicional
 
 ### Problemas con la API de Google Maps
 - Verifica que la API key esté correctamente configurada

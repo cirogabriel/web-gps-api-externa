@@ -3,59 +3,44 @@ import { Card } from "./components/ui/card"
 import { Button } from "./components/ui/button"
 import { Badge } from "./components/ui/badge"
 import { Modal, ModalHeader, ModalTitle, ModalContent, ModalFooter } from "./components/ui/modal"
-import { MapPin, Navigation, Clock, Satellite, Settings, User, Menu, Search, Layers, Route } from "lucide-react"
+import { MapPin, Navigation, Clock, Satellite, Settings, User, Menu, Search, Layers, Route, Wifi, Globe } from "lucide-react"
 import GoogleMap from "./components/GoogleMap"
+import { useHybridGeolocation } from "./hooks/useExternalGeolocation"
 
 export default function GPSTracker() {
-  const [location, setLocation] = useState(null)
   const [isTracking, setIsTracking] = useState(false)
-  const [error, setError] = useState(null)
-  const [watchId, setWatchId] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [authorModalOpen, setAuthorModalOpen] = useState(false)
+  
+  // Usar el hook híbrido que funciona con HTTP y HTTPS
+  const { location, error, loading, locationSource, getCurrentPosition, startWatching, stopWatching } = useHybridGeolocation()
 
   const startTracking = () => {
-    if (!navigator.geolocation) {
-      setError("Geolocalización no soportada en este dispositivo")
-      return
+    if (isTracking) return
+    
+    console.log("[GPS Tracker] Iniciando seguimiento...")
+    
+    // Si no hay ubicación actual, obtener una primera ubicación
+    if (!location) {
+      getCurrentPosition().then(() => {
+        // Después de obtener la ubicación, iniciar el tracking
+        startWatching()
+        setIsTracking(true)
+      }).catch(() => {
+        // Si falla, intentar tracking de todas formas (puede funcionar con IP)
+        startWatching()
+        setIsTracking(true)
+      })
+    } else {
+      // Si ya hay ubicación, iniciar tracking directamente
+      startWatching()
+      setIsTracking(true)
     }
-
-    const options = {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0,
-    }
-
-    const id = navigator.geolocation.watchPosition(
-      (position) => {
-        const locationData = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-          timestamp: position.timestamp,
-          speed: position.coords.speed || undefined,
-          heading: position.coords.heading || undefined,
-        }
-        setLocation(locationData)
-        setError(null)
-        console.log("[GPS Tracker] Location updated:", locationData)
-      },
-      (err) => {
-        setError(`Error de ubicación: ${err.message}`)
-        console.log("[GPS Tracker] Geolocation error:", err)
-      },
-      options,
-    )
-
-    setWatchId(id)
-    setIsTracking(true)
   }
 
   const stopTracking = () => {
-    if (watchId !== null) {
-      navigator.geolocation.clearWatch(watchId)
-      setWatchId(null)
-    }
+    console.log("[GPS Tracker] Deteniendo seguimiento...")
+    stopWatching()
     setIsTracking(false)
   }
 
@@ -67,12 +52,13 @@ export default function GPSTracker() {
   }
 
   useEffect(() => {
+    // Cleanup function para detener el seguimiento al desmontar el componente
     return () => {
-      if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId)
+      if (isTracking) {
+        stopWatching()
       }
     }
-  }, [watchId])
+  }, [isTracking, stopWatching])
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -134,14 +120,24 @@ export default function GPSTracker() {
 
             <Button
               onClick={isTracking ? stopTracking : startTracking}
-              className={`w-full text-sm font-medium rounded-lg py-2.5 transition-colors ${
+              disabled={loading}
+              className={`w-full text-sm font-medium rounded-lg py-2.5 transition-colors disabled:opacity-50 ${
                 isTracking 
                   ? "bg-red-600 hover:bg-red-700 text-white" 
                   : "bg-black hover:bg-gray-900 text-white"
               }`}
             >
-              <Navigation className="w-4 h-4 mr-2" />
-              {isTracking ? "Detener" : "Iniciar"}
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Obteniendo ubicación...
+                </>
+              ) : (
+                <>
+                  <Navigation className="w-4 h-4 mr-2" />
+                  {isTracking ? "Detener" : "Iniciar"}
+                </>
+              )}
             </Button>
           </Card>
         </div>
@@ -176,6 +172,38 @@ export default function GPSTracker() {
                       {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
                     </p>
                   </div>
+                  
+                  {/* Información de la fuente de ubicación */}
+                  <div>
+                    <p className="text-gray-600">Fuente</p>
+                    <div className="flex items-center gap-1">
+                      {locationSource === 'navigator' ? (
+                        <>
+                          <Satellite className="w-3 h-3 text-green-600" />
+                          <p className="text-green-600 text-xs">GPS del dispositivo</p>
+                        </>
+                      ) : locationSource === 'ip' ? (
+                        <>
+                          <Globe className="w-3 h-3 text-orange-600" />
+                          <p className="text-orange-600 text-xs">Geolocalización por IP</p>
+                        </>
+                      ) : (
+                        <>
+                          <Wifi className="w-3 h-3 text-gray-600" />
+                          <p className="text-gray-600 text-xs">Ubicación no disponible</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Mostrar información de ciudad si está disponible */}
+                  {location.city && (
+                    <div>
+                      <p className="text-gray-600">Ubicación</p>
+                      <p className="text-gray-900 text-xs">{location.city}, {location.region}</p>
+                    </div>
+                  )}
+                  
                   <div className="flex justify-between">
                     <div>
                       <p className="text-gray-600">Precisión</p>
@@ -227,11 +255,33 @@ export default function GPSTracker() {
           </div>
         )}
 
+        {/* Información cuando no hay ubicación */}
+        {!location && !isTracking && (
+          <div className="p-4">
+            <Card className="p-4 bg-blue-50 border-blue-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <Globe className="w-4 h-4 text-blue-600" />
+                <h3 className="text-sm font-semibold text-blue-900">Información</h3>
+              </div>
+              <div className="text-xs text-blue-800 space-y-2">
+                <p>Esta aplicación funciona tanto con HTTPS como HTTP.</p>
+                <p>• <strong>Con HTTPS:</strong> Usa GPS del dispositivo (alta precisión)</p>
+                <p>• <strong>Con HTTP:</strong> Usa geolocalización por IP (precisión aproximada)</p>
+                <p className="mt-3 font-medium">Haz clic en "Obtener Ubicación" para comenzar.</p>
+              </div>
+            </Card>
+          </div>
+        )}
+
         {/* Error Display */}
         {error && (
           <div className="p-4">
-            <Card className="p-3 bg-red-50 border-red-200">
-              <p className="text-xs text-red-600">{error}</p>
+            <Card className="p-3 bg-orange-50 border-orange-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Wifi className="w-4 h-4 text-orange-600" />
+                <h3 className="text-sm font-semibold text-orange-900">Aviso</h3>
+              </div>
+              <p className="text-xs text-orange-800">{error}</p>
             </Card>
           </div>
         )}
