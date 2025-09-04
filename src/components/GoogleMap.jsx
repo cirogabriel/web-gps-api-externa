@@ -247,26 +247,18 @@ const MapComponent = ({
   }, [map, trajectories, activeUsers, mode, userColors, createIcon]);
 
   return (
-    <div className="relative">
+    <div className="absolute inset-0">
       <div 
         ref={mapRef} 
         style={{ 
           width: '100%', 
-          height: '100%',
-          minHeight: '400px'
+          height: '100%'
         }} 
       />
-      
-      {/* Indicador de modo */}
-      <div className="absolute top-4 left-4 bg-white px-3 py-2 rounded-lg shadow-md border">
-        <span className="text-sm font-medium text-gray-700">
-          {mode === 'tracker' ? '📍 Mi ubicación' : '👁️ Observando trayectorias'}
-        </span>
-      </div>
 
       {/* Contador de usuarios activos */}
       {mode === 'watcher' && (
-        <div className="absolute top-4 right-4 bg-white px-3 py-2 rounded-lg shadow-md border">
+        <div className="absolute top-4 right-4 bg-white px-3 py-2 rounded-lg shadow-md border z-10">
           <span className="text-sm font-medium text-gray-700">
             {Object.keys(trajectories).length} usuario{Object.keys(trajectories).length !== 1 ? 's' : ''} activo{Object.keys(trajectories).length !== 1 ? 's' : ''}
           </span>
@@ -275,7 +267,7 @@ const MapComponent = ({
 
       {/* Estado de carga */}
       {mode === 'watcher' && Object.keys(trajectories).length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 bg-opacity-50">
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 bg-opacity-50 z-20">
           <div className="bg-white px-4 py-3 rounded-lg shadow-md border">
             <div className="flex items-center space-x-2">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
@@ -288,7 +280,7 @@ const MapComponent = ({
   );
 };
 
-const GoogleMap = ({ location, isTracking, trajectories, activeUsers, mode }) => {
+const GoogleMap = ({ location, trajectories, activeUsers, mode }) => {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
   if (!apiKey) {
