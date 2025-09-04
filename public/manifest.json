@@ -1,0 +1,23 @@
+{
+  "name": "GPS Tracker",
+  "short_name": "GPS Tracker",
+  "description": "Aplicación de seguimiento GPS en tiempo real",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "permissions": [
+    "geolocation"
+  ],
+  "features": [
+    "geolocation"
+  ]
+}

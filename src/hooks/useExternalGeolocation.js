@@ -126,9 +126,9 @@ export const useHybridGeolocation = (options = {}) => {
         },
         (err) => reject(err),
         {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
+          enableHighAccuracy: true,      // FORZAR GPS de alta precisión
+          timeout: 30000,                // 30 segundos para obtener GPS
+          maximumAge: 0,                 // NO usar cache, siempre fresco
           ...options,
         }
       )
@@ -249,9 +249,9 @@ export const useHybridGeolocation = (options = {}) => {
           startIPTracking()
         },
         {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000, // Cache por 1 minuto
+          enableHighAccuracy: true,      // GPS de alta precisión
+          timeout: 30000,                // 30 segundos de timeout  
+          maximumAge: 0,                 // NO usar cache, siempre datos frescos
           ...options,
         }
       )
