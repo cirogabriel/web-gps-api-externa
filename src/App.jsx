@@ -25,32 +25,47 @@ export default function GPSTracker() {
   // Hook para observar otros usuarios
   const { watchedUsers, currentLocation: watchedLocation, watchedUserId, watchUser, stopWatching: stopWatchingUser } = useLocationWatcher()
   
+  // Hooks para tracking en segundo plano y trayectorias múltiples (comentados temporalmente)
+  // const { startBackgroundTracking, stopBackgroundTracking } = useBackgroundTracker()
+  // const { activeUsers, trajectories, loadActiveUsers } = useMultipleTrajectories()
+  
   // Ubicación a mostrar (local o de usuario observado)
   const location = appMode === 'watcher' ? watchedLocation : localLocation
 
-  const startTracking = () => {
+  const startTracking = async () => {
     if (isTracking) return
     
     console.log("[GPS Tracker] Iniciando seguimiento...")
     
-    // Iniciar tracking local
-    if (!localLocation) {
-      getCurrentPosition().then(() => {
+    try {
+      // Iniciar tracking local
+      if (!localLocation) {
+        getCurrentPosition().then(() => {
+          startWatching()
+          setIsTracking(true)
+          
+          // Si está en modo tracker, también iniciar sharing
+          if (appMode === 'tracker') {
+            startSharing()
+          }
+        }).catch(() => {
+          startWatching()
+          setIsTracking(true)
+          if (appMode === 'tracker') {
+            startSharing()
+          }
+        })
+      } else {
         startWatching()
         setIsTracking(true)
-        
-        // Si está en modo tracker, también iniciar sharing
         if (appMode === 'tracker') {
           startSharing()
         }
-      }).catch(() => {
-        startWatching()
-        setIsTracking(true)
-        if (appMode === 'tracker') {
-          startSharing()
-        }
-      })
-    } else {
+      }
+      
+    } catch (error) {
+      console.error("[GPS Tracker] Error iniciando tracking:", error)
+      // Fallback a tracking normal
       startWatching()
       setIsTracking(true)
       if (appMode === 'tracker') {
@@ -59,14 +74,27 @@ export default function GPSTracker() {
     }
   }
 
-  const stopTracking = () => {
+  const stopTracking = async () => {
     console.log("[GPS Tracker] Deteniendo seguimiento...")
-    stopWatching()
-    setIsTracking(false)
     
-    // Si está compartiendo, detener también
-    if (appMode === 'tracker') {
-      stopSharing()
+    try {
+      // Detener tracking local
+      stopWatching()
+      setIsTracking(false)
+      
+      // Si está compartiendo, detener también
+      if (appMode === 'tracker') {
+        stopSharing()
+      }
+      
+    } catch (error) {
+      console.error("[GPS Tracker] Error deteniendo tracking:", error)
+      // Fallback
+      stopWatching()
+      setIsTracking(false)
+      if (appMode === 'tracker') {
+        stopSharing()
+      }
     }
   }
 
@@ -77,16 +105,46 @@ export default function GPSTracker() {
     }
   }, [appMode, isSharing, localLocation, isTracking, shareLocation])
 
+  // Actualización periódica de usuarios activos en modo watcher (comentado temporalmente)
+  /*
+  useEffect(() => {
+    let interval
+    if (appMode === 'watcher' && isTracking) {
+      // Cargar inmediatamente
+      loadActiveUsers()
+      
+      // Actualizar cada 5 segundos
+      interval = setInterval(() => {
+        loadActiveUsers()
+      }, 5000)
+    }
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval)
+      }
+    }
+  }, [appMode, isTracking])
+  */
+
   // Manejar cambio de modo
-  const handleModeSelect = (mode) => {
+  const handleModeSelect = async (mode) => {
     setAppMode(mode)
     if (isTracking) {
-      stopTracking()
+      await stopTracking()
     }
     if (mode === 'tracker') {
       console.log("[App] Modo Tracker seleccionado")
     } else if (mode === 'watcher') {
       console.log("[App] Modo Observador seleccionado")
+      // Cargar usuarios activos inmediatamente (comentado temporalmente)
+      /*
+      try {
+        await loadActiveUsers()
+      } catch (error) {
+        console.error("[App] Error cargando usuarios:", error)
+      }
+      */
     }
   }
 

@@ -1,6 +1,6 @@
 // Firebase configuration and real-time tracking service
 import { initializeApp } from 'firebase/app'
-import { getDatabase, ref, onValue, set } from 'firebase/database'
+import { getDatabase, ref, onValue, set, query, orderByChild, limitToLast, get } from 'firebase/database'
 
 // Tu configuración de Firebase
 const firebaseConfig = {
@@ -16,11 +16,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig)
 const database = getDatabase(app)
 
-// Servicio para manejo de tracking en tiempo real
+// Servicio para manejo de tracking en tiempo real con trayectorias continuas
 export class FirebaseTrackingService {
   constructor() {
     this.currentUserId = null
     this.listeners = new Map()
+    this.trajectoryListeners = new Map()
   }
 
   // Generar ID único para el usuario
@@ -133,7 +134,7 @@ export class FirebaseTrackingService {
     }
   }
 
-  // Limpiar todos los listeners
+  // Limpiar todos los listeners incluyendo trayectorias
   cleanup() {
     this.listeners.forEach((unsubscribe) => {
       if (typeof unsubscribe === 'function') {
@@ -141,6 +142,8 @@ export class FirebaseTrackingService {
       }
     })
     this.listeners.clear()
+    
+    this.clearTrajectoryListeners();
     
     if (this.currentUserId) {
       this.stopTracking()
@@ -150,5 +153,133 @@ export class FirebaseTrackingService {
   // Obtener el ID del tracker actual
   getCurrentUserId() {
     return this.currentUserId
+  }
+
+  // Enviar ubicación con registro de trayectoria
+  async sendLocationWithTrajectory(location) {
+    if (!this.currentUserId) return;
+
+    const locationData = {
+      ...location,
+      userId: this.currentUserId,
+      timestamp: Date.now(),
+      id: `${this.currentUserId}_${Date.now()}`
+    };
+
+    try {
+      // Actualizar ubicación actual
+      await set(ref(database, `locations/${this.currentUserId}`), locationData);
+      
+      // Registrar en trayectoria (para visualización continua)
+      await set(ref(database, `trajectories/${this.currentUserId}/${Date.now()}`), locationData);
+      
+      console.log('[Firebase] Ubicación y trayectoria enviadas:', locationData);
+    } catch (error) {
+      console.error('[Firebase] Error enviando ubicación:', error);
+      throw error;
+    }
+  }
+
+  // Obtener trayectoria de un usuario específico
+  getUserTrajectory(userId, callback) {
+    const trajectoryRef = ref(database, `trajectories/${userId}`);
+    const unsubscribe = onValue(trajectoryRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        // Convertir a array ordenado por timestamp
+        const trajectory = Object.values(data).sort((a, b) => a.timestamp - b.timestamp);
+        callback(trajectory);
+      } else {
+        callback([]);
+      }
+    });
+
+    this.trajectoryListeners.set(userId, unsubscribe);
+    return unsubscribe;
+  }
+
+  // Obtener trayectorias de múltiples usuarios
+  getMultipleTrajectories(userIds, callback) {
+    const trajectories = {};
+    let completedUsers = 0;
+
+    userIds.forEach(userId => {
+      this.getUserTrajectory(userId, (trajectory) => {
+        trajectories[userId] = trajectory;
+        completedUsers++;
+        
+        if (completedUsers === userIds.length) {
+          callback(trajectories);
+        }
+      });
+    });
+  }
+
+  // Obtener trayectoria por rango de fechas
+  getUserTrajectoryByDateRange(userId, startDate, endDate, callback) {
+    const trajectoryRef = ref(database, `trajectories/${userId}`);
+    const trajectoryQuery = query(
+      trajectoryRef, 
+      orderByChild('timestamp'),
+      limitToLast(1000) // Últimas 1000 posiciones
+    );
+
+    const unsubscribe = onValue(trajectoryQuery, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const trajectory = Object.values(data)
+          .filter(point => point.timestamp >= startDate && point.timestamp <= endDate)
+          .sort((a, b) => a.timestamp - b.timestamp);
+        callback(trajectory);
+      } else {
+        callback([]);
+      }
+    });
+
+    return unsubscribe;
+  }
+
+  // Limpiar listeners de trayectorias
+  clearTrajectoryListeners() {
+    this.trajectoryListeners.forEach(unsubscribe => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    });
+    this.trajectoryListeners.clear();
+  }
+
+  // Obtener usuarios activos (ubicaciones recientes)
+  async getActiveUsers() {
+    try {
+      const locationsRef = ref(database, 'locations');
+      const snapshot = await get(locationsRef);
+      
+      if (snapshot.exists()) {
+        const locations = snapshot.val();
+        const activeUsers = [];
+        const currentTime = Date.now();
+        const fiveMinutesAgo = currentTime - (5 * 60 * 1000); // 5 minutos
+
+        Object.keys(locations).forEach(userId => {
+          const location = locations[userId];
+          // Solo usuarios activos en los últimos 5 minutos
+          if (location.timestamp && location.timestamp > fiveMinutesAgo) {
+            activeUsers.push({
+              id: userId,
+              name: location.userName || `Usuario ${userId.slice(-4)}`,
+              ...location
+            });
+          }
+        });
+
+        return activeUsers;
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('[Firebase] Error obteniendo usuarios activos:', error);
+      return [];
+    }
   }
 }
