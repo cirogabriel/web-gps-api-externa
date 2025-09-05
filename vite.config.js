@@ -18,15 +18,10 @@ export default defineConfig({
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-      // FORZAR PERMISOS SIN HTTPS
       'Cross-Origin-Embedder-Policy': 'unsafe-none',
       'Cross-Origin-Opener-Policy': 'unsafe-none',
-      'X-Frame-Options': 'ALLOWALL',
-      // PERMITIR CONTENIDO INSEGURO PARA GPS
-      'Content-Security-Policy': "default-src 'self' 'unsafe-inline' 'unsafe-eval' *; connect-src 'self' *; script-src 'self' 'unsafe-inline' 'unsafe-eval' *; geolocation-src *;",
-      // HEADERS ESPECÍFICOS PARA GPS EN HTTP
-      'Referrer-Policy': 'no-referrer-when-downgrade',
-      'X-Content-Type-Options': 'nosniff'
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'no-referrer-when-downgrade'
     }
   },
   preview: {
