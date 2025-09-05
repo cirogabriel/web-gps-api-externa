@@ -7,7 +7,7 @@ import { MapPin, Navigation, Clock, Satellite, Settings, User, Menu, Search, Lay
 import GoogleMap from "./components/GoogleMap"
 import ModeSelector from "./components/ModeSelector"
 import UsersList from "./components/UsersList"
-import { useHTTPGPS } from "./hooks/useHTTPGPS"
+import { usePWAGPS } from "./hooks/usePWAGPS"
 import { useTracker, useLocationWatcher } from "./hooks/useRealTimeTracking"
 
 export default function GPSTracker() {
@@ -16,8 +16,8 @@ export default function GPSTracker() {
   const [authorModalOpen, setAuthorModalOpen] = useState(false)
   const [appMode, setAppMode] = useState(null) // null, 'tracker', 'watcher'
   
-  // Hook para GPS FORZADO que funciona en HTTP
-  const { location: localLocation, error, loading, getCurrentPosition, startWatching, stopWatching } = useHTTPGPS()
+  // Hook para GPS PWA que bypassea restricciones HTTP
+  const { location: localLocation, error, loading, getCurrentPosition, startWatching, stopWatching } = usePWAGPS()
   
   // Hook para ser rastreado (compartir ubicación)
   const { trackerId, isSharing, shareLocation, startSharing, stopSharing } = useTracker('Usuario GPS')

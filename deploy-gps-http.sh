@@ -25,8 +25,8 @@ ssh -i "$EC2_KEY" "$EC2_USER@$EC2_IP" << 'EOF'
 echo "🔄 Actualizando sistema..."
 sudo apt update
 
-echo "📦 Instalando nginx..."
-sudo apt install -y nginx
+echo "📦 Instalando nginx con módulos necesarios..."
+sudo apt install -y nginx nginx-module-http-sub-filter
 
 echo "🛑 Deteniendo nginx..."
 sudo systemctl stop nginx
