@@ -7,7 +7,7 @@ import { MapPin, Navigation, Clock, Satellite, Settings, User, Menu, Search, Lay
 import GoogleMap from "./components/GoogleMap"
 import ModeSelector from "./components/ModeSelector"
 import UsersList from "./components/UsersList"
-import { useForceGPS } from "./hooks/useForceGPS"
+import { useSimpleGPS } from "./hooks/useSimpleGPS"
 import { useTracker, useLocationWatcher } from "./hooks/useRealTimeTracking"
 
 export default function GPSTracker() {
@@ -16,8 +16,8 @@ export default function GPSTracker() {
   const [authorModalOpen, setAuthorModalOpen] = useState(false)
   const [appMode, setAppMode] = useState(null) // null, 'tracker', 'watcher'
   
-  // Hook para GPS FORZADO (funciona en HTTP)
-  const { location: localLocation, error, loading, getCurrentPosition, startWatching, stopWatching } = useForceGPS()
+  // Hook para GPS SIMPLE que funciona sin dependencias externas
+  const { location: localLocation, error, loading, getCurrentPosition, startWatching, stopWatching } = useSimpleGPS()
   
   // Hook para ser rastreado (compartir ubicación)
   const { trackerId, isSharing, shareLocation, startSharing, stopSharing } = useTracker('Usuario GPS')
@@ -25,12 +25,57 @@ export default function GPSTracker() {
   // Hook para observar otros usuarios
   const { watchedUsers, currentLocation: watchedLocation, watchedUserId, watchUser, stopWatching: stopWatchingUser } = useLocationWatcher()
   
-  // Hooks para tracking en segundo plano y trayectorias múltiples (comentados temporalmente)
+  // Estado para múltiples usuarios observados
+  const [watchedUserIds, setWatchedUserIds] = useState([])
+  
+  // Función para observar múltiples usuarios
+  const handleWatchUsers = (userIds) => {
+    setWatchedUserIds(userIds)
+    if (Array.isArray(userIds)) {
+      // Si es un array, observar el primer usuario (por simplicidad)
+      if (userIds.length > 0) {
+        watchUser(userIds[0])
+      } else {
+        stopWatchingUser()
+      }
+    } else if (userIds) {
+      // Si es un string/id individual
+      watchUser(userIds)
+      setWatchedUserIds([userIds])
+    } else {
+      // Si es null/undefined, detener observación
+      stopWatchingUser()
+      setWatchedUserIds([])
+    }
+  }
   // const { startBackgroundTracking, stopBackgroundTracking } = useBackgroundTracker()
   // const { activeUsers, trajectories, loadActiveUsers } = useMultipleTrajectories()
   
   // Ubicación a mostrar (local o de usuario observado)
-  const location = appMode === 'watcher' ? watchedLocation : localLocation
+  const location = appMode === 'watcher' ? (watchedLocation || localLocation) : localLocation
+  
+  // Ubicación por defecto si no hay ninguna disponible
+  const defaultLocation = {
+    latitude: -34.6118,
+    longitude: -58.3960,
+    accuracy: 100,
+    timestamp: Date.now(),
+    source: 'default'
+  }
+  
+  const finalLocation = location || defaultLocation
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('[App] � Estado actual:', {
+      appMode,
+      finalLocation: finalLocation ? 'SÍ' : 'NO',
+      watchedLocation: watchedLocation ? 'SÍ' : 'NO',
+      localLocation: localLocation ? 'SÍ' : 'NO',
+      watchedUserId,
+      watchedUsers: watchedUsers.length
+    });
+  }, [appMode, finalLocation, watchedLocation, localLocation, watchedUserId, watchedUsers])
 
   const startTracking = async () => {
     if (isTracking) return
@@ -137,14 +182,16 @@ export default function GPSTracker() {
       console.log("[App] Modo Tracker seleccionado")
     } else if (mode === 'watcher') {
       console.log("[App] Modo Observador seleccionado")
-      // Cargar usuarios activos inmediatamente (comentado temporalmente)
-      /*
-      try {
-        await loadActiveUsers()
-      } catch (error) {
-        console.error("[App] Error cargando usuarios:", error)
+      
+      // Obtener ubicación GPS para centrar el mapa si no la tenemos
+      if (!localLocation) {
+        console.log('[App] 🗺️ Obteniendo ubicación para centrar mapa en modo observador')
+        try {
+          await getCurrentPosition()
+        } catch (error) {
+          console.warn('[App] No se pudo obtener ubicación GPS:', error)
+        }
       }
-      */
     }
   }
 
@@ -208,9 +255,9 @@ export default function GPSTracker() {
         {appMode === 'watcher' && (
           <UsersList 
             users={watchedUsers} 
-            watchedUserId={watchedUserId} 
-            onWatchUser={watchUser} 
-            onStopWatching={stopWatchingUser} 
+            watchedUserId={watchedUserIds.length > 0 ? watchedUserIds : null} 
+            onWatchUser={handleWatchUsers} 
+            onStopWatching={() => handleWatchUsers([])} 
           />
         )}
 
@@ -221,25 +268,25 @@ export default function GPSTracker() {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${
-                    (appMode === 'tracker' ? isSharing : watchedUserId) 
+                    (appMode === 'tracker' ? isSharing : watchedUserIds.length > 0) 
                       ? "bg-green-500" 
                       : isTracking ? "bg-blue-500" : "bg-gray-400"
                   }`} />
                   <span className="text-sm font-medium text-gray-900">
                     {appMode === 'tracker' 
                       ? (isSharing ? "Compartiendo" : isTracking ? "Rastreando" : "Detenido")
-                      : (watchedUserId ? "Observando" : "Sin seleccionar")
+                      : (watchedUserIds.length > 0 ? `Observando ${watchedUserIds.length} usuario${watchedUserIds.length > 1 ? 's' : ''}` : "Sin seleccionar")
                     }
                   </span>
                 </div>
                 <Badge className={`text-xs px-2 py-1 rounded-full font-medium ${
-                  (appMode === 'tracker' ? isSharing : watchedUserId)
+                  (appMode === 'tracker' ? isSharing : watchedUserIds.length > 0)
                     ? "bg-green-100 text-green-700"
                     : isTracking ? "bg-blue-100 text-blue-700" : "bg-gray-200 text-gray-700"
                 }`}>
                   {appMode === 'tracker' 
                     ? (isSharing ? "COMPARTIENDO" : isTracking ? "RASTREANDO" : "INACTIVO")
-                    : (watchedUserId ? "OBSERVANDO" : "INACTIVO")
+                    : (watchedUserIds.length > 0 ? "OBSERVANDO" : "INACTIVO")
                   }
                 </Badge>
               </div>
@@ -456,7 +503,22 @@ export default function GPSTracker() {
 
         {/* Map Container */}
         <div className="flex-1 relative bg-gray-100">
-          <GoogleMap location={location} isTracking={isTracking} />
+          {finalLocation ? (
+            <GoogleMap 
+              location={finalLocation} 
+              isTracking={isTracking}
+              mode={appMode || 'tracker'}
+              trajectories={{}}
+              activeUsers={watchedUsers || []}
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Cargando mapa...</p>
+              </div>
+            </div>
+          )}
 
           {/* Floating Controls */}
           <div className="absolute bottom-6 right-6 flex flex-col gap-2">

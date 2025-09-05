@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { FirebaseTrackingService } from '../services/firebaseTracking'
+import { FirebaseTrackingService } from '../services/firebaseService'
 
 // Hook para el usuario que será rastreado (tracker)
 export const useTracker = (userName = 'Usuario') => {
@@ -81,6 +81,8 @@ export const useLocationWatcher = () => {
 
   // Empezar a observar un usuario específico
   const watchUser = useCallback((userId) => {
+    console.log('[Watcher] 🔍 Empezando a observar usuario:', userId)
+    
     if (watchedUserId) {
       // Detener observación anterior
       trackingService.cleanup()
@@ -88,12 +90,13 @@ export const useLocationWatcher = () => {
 
     try {
       trackingService.subscribeToUserLocation(userId, (location) => {
+        console.log('[Watcher] 📍 Nueva ubicación de usuario observado:', location)
         setCurrentLocation(location)
-        console.log('[Watcher] Nueva ubicación de usuario:', location)
       })
       setWatchedUserId(userId)
       setError(null)
     } catch (err) {
+      console.error('[Watcher] ❌ Error observando usuario:', err)
       setError(err.message)
     }
   }, [trackingService, watchedUserId])

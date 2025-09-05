@@ -10,25 +10,37 @@ export default defineConfig({
     open: false,
     cors: true,                // Habilitar CORS
     strictPort: false,         // Permite cambiar puerto si está ocupado
+    https: false,              // FORZAR HTTP (no HTTPS)
     headers: {
-      // Headers críticos para GPS en HTTP
-      'Permissions-Policy': 'geolocation=*, camera=*, microphone=*',
-      'Feature-Policy': 'geolocation *; camera *; microphone *',
+      // HEADERS CRÍTICOS PARA FORZAR GPS EN HTTP
+      'Permissions-Policy': 'geolocation=*, camera=*, microphone=*, accelerometer=*, gyroscope=*',
+      'Feature-Policy': 'geolocation *; camera *; microphone *; accelerometer *; gyroscope *',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-      // Forzar contexto seguro para GPS
-      'Content-Security-Policy': "default-src 'self' 'unsafe-inline' 'unsafe-eval' *; connect-src 'self' *; script-src 'self' 'unsafe-inline' 'unsafe-eval' *;",
-      // Headers adicionales para PWA
-      'X-Frame-Options': 'ALLOWALL',
+      // FORZAR PERMISOS SIN HTTPS
       'Cross-Origin-Embedder-Policy': 'unsafe-none',
-      'Cross-Origin-Opener-Policy': 'unsafe-none'
+      'Cross-Origin-Opener-Policy': 'unsafe-none',
+      'X-Frame-Options': 'ALLOWALL',
+      // PERMITIR CONTENIDO INSEGURO PARA GPS
+      'Content-Security-Policy': "default-src 'self' 'unsafe-inline' 'unsafe-eval' *; connect-src 'self' *; script-src 'self' 'unsafe-inline' 'unsafe-eval' *; geolocation-src *;",
+      // HEADERS ESPECÍFICOS PARA GPS EN HTTP
+      'Referrer-Policy': 'no-referrer-when-downgrade',
+      'X-Content-Type-Options': 'nosniff'
     }
   },
   preview: {
     host: '0.0.0.0',
     port: 5678,
-    cors: true
+    cors: true,
+    https: false,              // FORZAR HTTP también en preview
+    headers: {
+      // MISMOS HEADERS PARA PREVIEW/PRODUCTION
+      'Permissions-Policy': 'geolocation=*, camera=*, microphone=*, accelerometer=*, gyroscope=*',
+      'Feature-Policy': 'geolocation *; camera *; microphone *; accelerometer *; gyroscope *',
+      'Cross-Origin-Embedder-Policy': 'unsafe-none',
+      'Cross-Origin-Opener-Policy': 'unsafe-none'
+    }
   },
   define: {
     // Variables globales para forzar contexto seguro

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { FirebaseTrackingService } from '../services/firebaseTracking';
+import { FirebaseTrackingService } from '../services/firebaseService';
 
 // Hook para tracking continuo en segundo plano con trayectorias
 export const useBackgroundTracker = () => {

@@ -62,21 +62,31 @@ const MapComponent = ({
     }
   }, [map, location]);
 
-  // Actualizar marcador de ubicación propia (modo tracker)
+  // Actualizar marcador de ubicación propia (modo tracker) o ubicación observada (modo watcher)
   useEffect(() => {
-    if (!map || !location || mode !== 'tracker') return;
+    if (!map || !location) return;
+    
+    console.log('[GoogleMap] 📍 Actualizando ubicación en modo:', mode, location);
 
-    const position = { lat: location.latitude, lng: location.longitude };
+    const position = { lat: parseFloat(location.latitude), lng: parseFloat(location.longitude) };
+    
+    if (isNaN(position.lat) || isNaN(position.lng)) {
+      console.warn('[GoogleMap] ⚠️ Coordenadas inválidas:', position);
+      return;
+    }
 
     // Actualizar o crear marcador principal
     if (markerRef.current) {
       markerRef.current.setPosition(position);
     } else {
+      const iconColor = mode === 'tracker' ? '#4285F4' : '#FF5722';
+      const title = mode === 'tracker' ? 'Mi ubicación' : 'Usuario observado';
+      
       markerRef.current = new window.google.maps.Marker({
         position: position,
         map: map,
-        title: 'Mi ubicación',
-        icon: createIcon('#4285F4', 2.5),
+        title: title,
+        icon: createIcon(iconColor, 2.5),
         zIndex: 1000
       });
     }
@@ -86,20 +96,22 @@ const MapComponent = ({
       accuracyCircleRef.current.setCenter(position);
       accuracyCircleRef.current.setRadius(location.accuracy || 50);
     } else {
+      const circleColor = mode === 'tracker' ? '#4285F4' : '#FF5722';
+      
       accuracyCircleRef.current = new window.google.maps.Circle({
         center: position,
         radius: location.accuracy || 50,
         map: map,
-        fillColor: '#4285F4',
+        fillColor: circleColor,
         fillOpacity: 0.1,
-        strokeColor: '#4285F4',
+        strokeColor: circleColor,
         strokeOpacity: 0.3,
         strokeWeight: 2,
         zIndex: 1
       });
     }
 
-    // Centrar mapa en mi ubicación
+    // Centrar mapa en la ubicación
     map.setCenter(position);
   }, [map, location, mode, createIcon]);
 
@@ -265,11 +277,11 @@ const MapComponent = ({
         </div>
       )}
 
-      {/* Estado de carga */}
-      {mode === 'watcher' && Object.keys(trajectories).length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 bg-opacity-50 z-20">
-          <div className="bg-white px-4 py-3 rounded-lg shadow-md border">
-            <div className="flex items-center space-x-2">
+      {/* Estado de carga solo si no hay usuarios activos Y estamos en modo watcher */}
+      {mode === 'watcher' && (!activeUsers || activeUsers.length === 0) && (
+        <div className="absolute top-4 left-4 right-4 z-20">
+          <div className="bg-white px-4 py-3 rounded-lg shadow-md border mx-auto max-w-xs">
+            <div className="flex items-center space-x-2 justify-center">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
               <span className="text-sm text-gray-600">Buscando usuarios activos...</span>
             </div>
@@ -280,8 +292,15 @@ const MapComponent = ({
   );
 };
 
-const GoogleMap = ({ location, trajectories, activeUsers, mode }) => {
+const GoogleMap = ({ location, trajectories = {}, activeUsers = [], mode = 'tracker', isTracking = false }) => {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  
+  console.log('[GoogleMap] 🗺️ Renderizando con:', { 
+    location: location ? 'SÍ' : 'NO', 
+    mode, 
+    activeUsers: activeUsers.length,
+    apiKey: apiKey ? 'SÍ' : 'NO' 
+  });
 
   if (!apiKey) {
     return (
