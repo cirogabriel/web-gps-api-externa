@@ -16,6 +16,47 @@ export default function GPSTracker() {
   const [userTrajectories, setUserTrajectories] = useState({})
   const [selectedUser, setSelectedUser] = useState(null)
 
+  // Datos de demostración iniciales que se cargan automáticamente
+  useEffect(() => {
+    // Simular que estos datos "vienen de Firebase" después de un pequeño delay
+    const timer = setTimeout(() => {
+      const demoData = {
+        'demo_user_1': {
+          position: {
+            latitude: -13.515234,
+            longitude: -71.977856,
+            accuracy: 15,
+            timestamp: Date.now() - 120000 // hace 2 minutos
+          },
+          timestamp: Date.now() - 120000
+        },
+        'demo_user_2': {
+          position: {
+            latitude: -13.518123,
+            longitude: -71.979445,
+            accuracy: 20,
+            timestamp: Date.now() - 300000 // hace 5 minutos
+          },
+          timestamp: Date.now() - 300000
+        },
+        'demo_user_3': {
+          position: {
+            latitude: -13.514891,
+            longitude: -71.976234,
+            accuracy: 12,
+            timestamp: Date.now() - 60000 // hace 1 minuto
+          },
+          timestamp: Date.now() - 60000
+        }
+      };
+      
+      console.log('[App] 📍 Cargando datos de demostración:', demoData);
+      setWatchedUsers(demoData);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   // Función para observar usuarios
   const handleWatchUsers = (userId, position) => {
     if (userId && position) {
@@ -52,11 +93,11 @@ export default function GPSTracker() {
     setSelectedUser(userId)
   }
 
-  // Ubicación por defecto para centrar el mapa (Cusco, Perú)
+  // Ubicación por defecto para centrar el mapa (Plaza de Armas, Cusco, Perú)
   const defaultLocation = {
-    latitude: -13.5409742,
-    longitude: -71.9842674,
-    accuracy: 100,
+    latitude: -13.516667,
+    longitude: -71.978771,
+    accuracy: 50,
     timestamp: Date.now(),
     source: 'default'
   }
@@ -64,7 +105,8 @@ export default function GPSTracker() {
   // Debug logging
   useEffect(() => {
     console.log('[App] 🔄 Estado actual:', {
-      watchedUsersCount: Object.keys(watchedUsers).length
+      watchedUsersCount: Object.keys(watchedUsers).length,
+      watchedUsers: watchedUsers
     });
   }, [watchedUsers])
 
