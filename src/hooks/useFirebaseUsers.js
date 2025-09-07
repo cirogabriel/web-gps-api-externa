@@ -95,63 +95,98 @@ export const useFirebaseUsers = () => {
     }
   }, []);
 
-  // Cargar histórico de un usuario para un día específico
-  // Función para cargar histórico por rango de timestamps
+  // Función para cargar histórico por rango de timestamps con nueva estructura por fechas
   const loadUserHistoryByRange = useCallback(async (userId, startTimestamp, endTimestamp) => {
     try {
       console.log(`[Firebase] 📈 Cargando histórico de ${userId} por rango de timestamps`);
       console.log(`[Firebase] 🕐 Inicio: ${new Date(startTimestamp).toISOString()}`);
       console.log(`[Firebase] 🕐 Fin: ${new Date(endTimestamp).toISOString()}`);
-      console.log(`[Firebase] 🔗 Ruta: users/${userId}/history/positions`);
+      console.log(`[Firebase] 🔗 Ruta: users/${userId}/history`);
       
-      const historyRef = ref(db, `users/${userId}/history/positions`);
+      const historyRef = ref(db, `users/${userId}/history`);
       const snapshot = await get(historyRef);
       
-      if (snapshot.exists()) {
-        const allPositions = snapshot.val();
-        console.log(`[Firebase] 📊 Total posiciones en Firebase:`, Object.keys(allPositions).length);
-        
-        // Convertir objeto a array y filtrar por rango de timestamps
-        const positionsArray = Object.values(allPositions);
-        console.log(`[Firebase] 📊 Ejemplo de posición:`, positionsArray[0]);
-        console.log(`[Firebase] 🕐 Rango de filtro:`, {
-          startTimestamp,
-          endTimestamp,
-          startDate: new Date(startTimestamp).toISOString(),
-          endDate: new Date(endTimestamp).toISOString()
-        });
-        
-        const filteredPositions = positionsArray.filter(pos => {
-          const posTimestamp = pos.timestamp;
-          const posDate = new Date(posTimestamp);
-          const isInRange = posTimestamp >= startTimestamp && posTimestamp <= endTimestamp;
-          
-          console.log(`[Firebase] 🔍 Posición ${posDate.toISOString()}:`, {
-            timestamp: posTimestamp,
-            inRange: isInRange,
-            comparison: {
-              greaterThanStart: posTimestamp >= startTimestamp,
-              lessThanEnd: posTimestamp <= endTimestamp
-            }
-          });
-          
-          return isInRange;
-        });
-        
-        // Ordenar por timestamp
-        filteredPositions.sort((a, b) => a.timestamp - b.timestamp);
-        
-        console.log(`[Firebase] ✅ Posiciones filtradas: ${filteredPositions.length}`);
-        console.log(`[Firebase] 📊 Rango de timestamps encontrado:`, {
-          primera: filteredPositions[0]?.timestamp ? new Date(filteredPositions[0].timestamp).toISOString() : 'N/A',
-          ultima: filteredPositions[filteredPositions.length - 1]?.timestamp ? new Date(filteredPositions[filteredPositions.length - 1].timestamp).toISOString() : 'N/A'
-        });
-        
-        return filteredPositions;
-      } else {
-        console.log(`[Firebase] ⚠️ No hay datos de posiciones para ${userId}`);
+      if (!snapshot.exists()) {
+        console.log(`[Firebase] ⚠️ No hay datos de histórico para ${userId}`);
         return [];
       }
+
+      const history = snapshot.val();
+      const allPositions = [];
+
+      // Convertir timestamps a fechas para comparación
+      const startDate = new Date(startTimestamp);
+      const endDate = new Date(endTimestamp);
+      
+      // Obtener fechas en formato YYYY-MM-DD para comparación
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      console.log(`[Firebase] 📊 Rango de fechas a buscar: ${startDateStr} a ${endDateStr}`);
+      
+      console.log(`[Firebase] 📊 Fechas encontradas en Firebase:`, Object.keys(history));
+
+      // Recorrer cada fecha en el histórico
+      for (const dateKey of Object.keys(history)) {
+        try {
+          // dateKey está en formato YYYY-MM-DD
+          const dateObj = new Date(dateKey + 'T00:00:00.000Z'); // Convertir a fecha UTC
+          
+          console.log(`[Firebase] � Procesando fecha: ${dateKey}`, {
+            dateObj: dateObj.toISOString(),
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            inRange: dateObj >= startDate && dateObj <= endDate
+          });
+          
+          // Verificar si la fecha está en el rango
+          if (dateObj >= startDate && dateObj <= endDate) {
+            const dayData = history[dateKey];
+            const positionsObj = dayData.positions || {};
+            
+            console.log(`[Firebase] 📊 Posiciones en ${dateKey}:`, Object.keys(positionsObj).length);
+            
+            // Procesar cada posición del día
+            for (const posId in positionsObj) {
+              const pos = positionsObj[posId];
+              
+              // Usar savedAt si existe, sino usar timestamp
+              const posTimestamp = pos.savedAt || pos.timestamp;
+              
+              // Filtrar por timestamp exacto dentro del rango
+              if (posTimestamp >= startTimestamp && posTimestamp <= endTimestamp) {
+                allPositions.push({
+                  lat: pos.latitude,
+                  lng: pos.longitude,
+                  savedAt: posTimestamp,
+                  accuracy: pos.accuracy || 0,
+                  // Mantener campos originales para compatibilidad
+                  latitude: pos.latitude,
+                  longitude: pos.longitude,
+                  timestamp: posTimestamp
+                });
+              }
+            }
+          }
+        } catch (dateError) {
+          console.warn(`[Firebase] ⚠️ Error procesando fecha ${dateKey}:`, dateError);
+        }
+      }
+
+      // Ordenar por timestamp
+      allPositions.sort((a, b) => a.savedAt - b.savedAt);
+      
+      console.log(`[Firebase] ✅ Posiciones filtradas: ${allPositions.length}`);
+      if (allPositions.length > 0) {
+        console.log(`[Firebase] 📊 Rango de timestamps encontrado:`, {
+          primera: new Date(allPositions[0].savedAt).toISOString(),
+          ultima: new Date(allPositions[allPositions.length - 1].savedAt).toISOString()
+        });
+        console.log(`[Firebase] 📍 Primera posición:`, allPositions[0]);
+        console.log(`[Firebase] 📍 Última posición:`, allPositions[allPositions.length - 1]);
+      }
+      
+      return allPositions;
     } catch (err) {
       console.error(`[Firebase] ❌ Error cargando histórico por rango de ${userId}:`, err);
       throw err;
