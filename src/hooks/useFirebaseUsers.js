@@ -96,6 +96,68 @@ export const useFirebaseUsers = () => {
   }, []);
 
   // Cargar histórico de un usuario para un día específico
+  // Función para cargar histórico por rango de timestamps
+  const loadUserHistoryByRange = useCallback(async (userId, startTimestamp, endTimestamp) => {
+    try {
+      console.log(`[Firebase] 📈 Cargando histórico de ${userId} por rango de timestamps`);
+      console.log(`[Firebase] 🕐 Inicio: ${new Date(startTimestamp).toISOString()}`);
+      console.log(`[Firebase] 🕐 Fin: ${new Date(endTimestamp).toISOString()}`);
+      console.log(`[Firebase] 🔗 Ruta: users/${userId}/history/positions`);
+      
+      const historyRef = ref(db, `users/${userId}/history/positions`);
+      const snapshot = await get(historyRef);
+      
+      if (snapshot.exists()) {
+        const allPositions = snapshot.val();
+        console.log(`[Firebase] 📊 Total posiciones en Firebase:`, Object.keys(allPositions).length);
+        
+        // Convertir objeto a array y filtrar por rango de timestamps
+        const positionsArray = Object.values(allPositions);
+        console.log(`[Firebase] 📊 Ejemplo de posición:`, positionsArray[0]);
+        console.log(`[Firebase] 🕐 Rango de filtro:`, {
+          startTimestamp,
+          endTimestamp,
+          startDate: new Date(startTimestamp).toISOString(),
+          endDate: new Date(endTimestamp).toISOString()
+        });
+        
+        const filteredPositions = positionsArray.filter(pos => {
+          const posTimestamp = pos.timestamp;
+          const posDate = new Date(posTimestamp);
+          const isInRange = posTimestamp >= startTimestamp && posTimestamp <= endTimestamp;
+          
+          console.log(`[Firebase] 🔍 Posición ${posDate.toISOString()}:`, {
+            timestamp: posTimestamp,
+            inRange: isInRange,
+            comparison: {
+              greaterThanStart: posTimestamp >= startTimestamp,
+              lessThanEnd: posTimestamp <= endTimestamp
+            }
+          });
+          
+          return isInRange;
+        });
+        
+        // Ordenar por timestamp
+        filteredPositions.sort((a, b) => a.timestamp - b.timestamp);
+        
+        console.log(`[Firebase] ✅ Posiciones filtradas: ${filteredPositions.length}`);
+        console.log(`[Firebase] 📊 Rango de timestamps encontrado:`, {
+          primera: filteredPositions[0]?.timestamp ? new Date(filteredPositions[0].timestamp).toISOString() : 'N/A',
+          ultima: filteredPositions[filteredPositions.length - 1]?.timestamp ? new Date(filteredPositions[filteredPositions.length - 1].timestamp).toISOString() : 'N/A'
+        });
+        
+        return filteredPositions;
+      } else {
+        console.log(`[Firebase] ⚠️ No hay datos de posiciones para ${userId}`);
+        return [];
+      }
+    } catch (err) {
+      console.error(`[Firebase] ❌ Error cargando histórico por rango de ${userId}:`, err);
+      throw err;
+    }
+  }, []);
+
   const loadUserHistory = useCallback(async (userId, date) => {
     try {
       console.log(`[Firebase] 📈 Cargando histórico de ${userId} para fecha ${date}`);
@@ -148,7 +210,8 @@ export const useFirebaseUsers = () => {
     loadUsers,
     watchUser,
     stopWatchingUser,
-    loadUserHistory
+    loadUserHistory,
+    loadUserHistoryByRange
   };
 };
 

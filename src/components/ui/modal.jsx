@@ -4,19 +4,21 @@ import { X } from "lucide-react"
 import { Button } from "./button"
 
 const Modal = ({ isOpen, onClose, children, className }) => {
+  console.log('[Modal] 🔍 Modal render:', { isOpen });
+  
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
       {/* Overlay */}
       <div 
-        className="fixed inset-0 bg-black/30" 
+        className="fixed inset-0 bg-black/50" 
         onClick={onClose}
       />
       
       {/* Modal Content */}
       <div className={cn(
-        "relative bg-white rounded-lg border border-gray-200 shadow-lg max-w-md w-full mx-4",
+        "relative bg-white rounded-lg border border-gray-200 shadow-2xl max-w-lg w-full mx-4",
         className
       )}>
         {/* Close Button */}

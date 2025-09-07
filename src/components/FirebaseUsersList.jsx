@@ -6,8 +6,8 @@ import { User, MapPin, Clock, Eye, EyeOff, History, Play, Square } from 'lucide-
 import useFirebaseUsers from '../hooks/useFirebaseUsers';
 import { getUserColor, getUserColorLight } from '../utils/userColors';
 
-export default function FirebaseUsersList({ onWatchUser, onStopWatching, onShowHistory }) {
-  const { users, loading, error, loadUsers, watchUser, stopWatchingUser, loadUserHistory } = useFirebaseUsers();
+export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenHistoryModal }) {
+  const { users, loading, error, loadUsers, watchUser, stopWatchingUser } = useFirebaseUsers();
   const [liveWatching, setLiveWatching] = useState(new Set());
   const [userPositions, setUserPositions] = useState({});
 
@@ -57,48 +57,10 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onShowH
     onStopWatching(userId);
   };
 
-  // Función para mostrar histórico
-  const handleShowHistory = async (userId) => {
-    try {
-      console.log('[FirebaseUsersList] 📈 Cargando histórico REAL para:', userId);
-      
-      // DEBUG: Mostrar información detallada de la fecha
-      const now = new Date();
-      console.log('[FirebaseUsersList] 🕐 Fecha/hora actual completa:', now);
-      console.log('[FirebaseUsersList] 🕐 Timestamp:', now.getTime());
-      console.log('[FirebaseUsersList] 🕐 toISOString():', now.toISOString());
-      console.log('[FirebaseUsersList] 🕐 getFullYear():', now.getFullYear());
-      console.log('[FirebaseUsersList] 🕐 getMonth()+1:', now.getMonth() + 1);
-      console.log('[FirebaseUsersList] 🕐 getDate():', now.getDate());
-      
-      // Usar la fecha actual dinámicamente (forzando zona horaria local)
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, '0');
-      const day = String(today.getDate()).padStart(2, '0');
-      const targetDate = `${year}-${month}-${day}`;
-      
-      console.log('[FirebaseUsersList] 📅 Fecha objetivo (hoy):', targetDate);
-      console.log('[FirebaseUsersList] 🕐 Fecha completa actual:', today.toString());
-      
-      // Comparar con el método ISO
-      const isoDate = today.toISOString().split('T')[0];
-      console.log('[FirebaseUsersList] 📅 Fecha ISO para comparar:', isoDate);
-      
-      const history = await loadUserHistory(userId, targetDate);
-      console.log('[FirebaseUsersList] 📊 Histórico REAL cargado de Firebase:', history);
-      
-      if (history && history.length > 0) {
-        console.log('[FirebaseUsersList] ✅ Enviando histórico REAL al mapa');
-        onShowHistory(userId, history);
-      } else {
-        console.log('[FirebaseUsersList] ⚠️ No se encontró histórico para la fecha objetivo');
-        alert(`No se encontró histórico para ${userId} en la fecha ${targetDate}.`);
-      }
-    } catch (err) {
-      console.error('[FirebaseUsersList] ❌ Error cargando histórico:', err);
-      alert(`Error al cargar el histórico: ${err.message}`);
-    }
+  // Función para abrir el modal de histórico
+  const handleShowHistory = (userId) => {
+    console.log('[FirebaseUsersList] 📈 Delegando apertura de modal al componente padre para:', userId);
+    onOpenHistoryModal(userId);
   };
 
   // Función para verificar si un usuario está activo (menos de 1 minuto)

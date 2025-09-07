@@ -6,6 +6,8 @@ import { Modal, ModalHeader, ModalTitle, ModalContent, ModalFooter } from "./com
 import { MapPin, Navigation, Clock, Satellite, Settings, User, Menu, Search, Layers, Route, Wifi, Globe, Users } from "lucide-react"
 import FirebaseMapComponent from "./components/FirebaseMapComponent"
 import FirebaseUsersList from "./components/FirebaseUsersList"
+import HistoryModal from "./components/HistoryModal"
+import useFirebaseUsers from "./hooks/useFirebaseUsers"
 
 export default function GPSTracker() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -15,6 +17,14 @@ export default function GPSTracker() {
   const [watchedUsers, setWatchedUsers] = useState({})
   const [userTrajectories, setUserTrajectories] = useState({})
   const [selectedUser, setSelectedUser] = useState(null)
+
+  // Estados para el modal de histórico
+  const [historyModalOpen, setHistoryModalOpen] = useState(false)
+  const [selectedUserId, setSelectedUserId] = useState(null)
+  const [historyLoading, setHistoryLoading] = useState(false)
+
+  // Hook de Firebase
+  const { loadUserHistoryByRange } = useFirebaseUsers();
 
   // Datos de demostración iniciales que se cargan automáticamente
   useEffect(() => {
@@ -106,6 +116,48 @@ export default function GPSTracker() {
     alert('🔍 Test de Firebase iniciado.\n\nRevisar consola del navegador para logs detallados.\nProbar el botón "Histórico" en la lista de usuarios.');
   };
 
+  // Funciones para el modal de histórico
+  const handleOpenHistoryModal = (userId) => {
+    console.log('[App] 📈 Abriendo modal de histórico para:', userId);
+    setSelectedUserId(userId);
+    setHistoryModalOpen(true);
+  };
+
+  const handleCloseHistoryModal = () => {
+    setHistoryModalOpen(false);
+    setSelectedUserId(null);
+    setHistoryLoading(false);
+  };
+
+  const handleDrawRoute = async (userId, startTimestamp, endTimestamp) => {
+    try {
+      setHistoryLoading(true);
+      console.log('[App] 🗺️ Dibujando ruta para:', {
+        userId,
+        startTimestamp,
+        endTimestamp,
+        startDate: new Date(startTimestamp).toISOString(),
+        endDate: new Date(endTimestamp).toISOString()
+      });
+
+      const positions = await loadUserHistoryByRange(userId, startTimestamp, endTimestamp);
+      
+      if (positions && positions.length > 0) {
+        console.log('[App] ✅ Ruta cargada con', positions.length, 'posiciones');
+        handleShowHistory(userId, positions);
+        handleCloseHistoryModal();
+      } else {
+        console.log('[App] ⚠️ No se encontraron posiciones en el rango seleccionado');
+        alert(`No se encontraron posiciones para ${userId} en el rango de fechas seleccionado.`);
+      }
+    } catch (err) {
+      console.error('[App] ❌ Error cargando ruta:', err);
+      alert('Error al cargar el histórico: ' + err.message);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
   // Ubicación por defecto para centrar el mapa (Plaza de Armas, Cusco, Perú)
   const defaultLocation = {
     latitude: -13.516667,
@@ -151,6 +203,7 @@ export default function GPSTracker() {
           onWatchUser={handleWatchUsers}
           onStopWatching={handleStopWatching}
           onShowHistory={handleShowHistory}
+          onOpenHistoryModal={handleOpenHistoryModal}
         />
 
         {/* Controles de observación */}
@@ -388,6 +441,15 @@ export default function GPSTracker() {
           </Button>
         </ModalFooter>
       </Modal>
+
+      {/* Modal de histórico - Centrado en el viewport completo */}
+      <HistoryModal
+        isOpen={historyModalOpen}
+        onClose={handleCloseHistoryModal}
+        onDrawRoute={handleDrawRoute}
+        userId={selectedUserId}
+        loading={historyLoading}
+      />
     </div>
   )
 }
