@@ -98,20 +98,33 @@ export const useFirebaseUsers = () => {
   // Cargar histórico de un usuario para un día específico
   const loadUserHistory = useCallback(async (userId, date) => {
     try {
+      console.log(`[Firebase] 📈 Cargando histórico de ${userId} para fecha ${date}`);
+      console.log(`[Firebase] 🔗 Ruta completa: users/${userId}/history/${date}/positions`);
+      
       const historyRef = ref(db, `users/${userId}/history/${date}/positions`);
       const snapshot = await get(historyRef);
       
       if (snapshot.exists()) {
-        const positions = snapshot.val();
-        return Object.keys(positions).map(key => ({
-          id: key,
-          ...positions[key]
-        })).sort((a, b) => a.timestamp - b.timestamp);
+        const data = snapshot.val();
+        console.log(`[Firebase] 📊 Datos en Firebase:`, data);
+        
+        // Convertir el objeto a array de coordenadas
+        const positions = Object.values(data).map(pos => ({
+          latitude: pos.latitude,
+          longitude: pos.longitude,
+          timestamp: pos.timestamp,
+          accuracy: pos.accuracy || 0,
+          savedAt: pos.savedAt || pos.timestamp
+        })).sort((a, b) => a.timestamp - b.timestamp); // Ordenar por timestamp
+        
+        console.log(`[Firebase] ✅ Histórico procesado: ${positions.length} posiciones`, positions);
+        return positions;
+      } else {
+        console.log(`[Firebase] ⚠️ No hay datos para ${userId} en ${date}`);
+        return [];
       }
-      
-      return [];
     } catch (err) {
-      console.error(`[Firebase] Error cargando histórico de ${userId}:`, err);
+      console.error(`[Firebase] ❌ Error cargando histórico de ${userId}:`, err);
       throw err;
     }
   }, []);

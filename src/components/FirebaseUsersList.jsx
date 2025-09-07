@@ -4,6 +4,7 @@ import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { User, MapPin, Clock, Eye, EyeOff, History, Play, Square } from 'lucide-react';
 import useFirebaseUsers from '../hooks/useFirebaseUsers';
+import { getUserColor, getUserColorLight } from '../utils/userColors';
 
 export default function FirebaseUsersList({ onWatchUser, onStopWatching, onShowHistory }) {
   const { users, loading, error, loadUsers, watchUser, stopWatchingUser, loadUserHistory } = useFirebaseUsers();
@@ -59,11 +60,44 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onShowH
   // Función para mostrar histórico
   const handleShowHistory = async (userId) => {
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const history = await loadUserHistory(userId, today);
-      onShowHistory(userId, history);
+      console.log('[FirebaseUsersList] 📈 Cargando histórico REAL para:', userId);
+      
+      // DEBUG: Mostrar información detallada de la fecha
+      const now = new Date();
+      console.log('[FirebaseUsersList] 🕐 Fecha/hora actual completa:', now);
+      console.log('[FirebaseUsersList] 🕐 Timestamp:', now.getTime());
+      console.log('[FirebaseUsersList] 🕐 toISOString():', now.toISOString());
+      console.log('[FirebaseUsersList] 🕐 getFullYear():', now.getFullYear());
+      console.log('[FirebaseUsersList] 🕐 getMonth()+1:', now.getMonth() + 1);
+      console.log('[FirebaseUsersList] 🕐 getDate():', now.getDate());
+      
+      // Usar la fecha actual dinámicamente (forzando zona horaria local)
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const targetDate = `${year}-${month}-${day}`;
+      
+      console.log('[FirebaseUsersList] 📅 Fecha objetivo (hoy):', targetDate);
+      console.log('[FirebaseUsersList] 🕐 Fecha completa actual:', today.toString());
+      
+      // Comparar con el método ISO
+      const isoDate = today.toISOString().split('T')[0];
+      console.log('[FirebaseUsersList] 📅 Fecha ISO para comparar:', isoDate);
+      
+      const history = await loadUserHistory(userId, targetDate);
+      console.log('[FirebaseUsersList] 📊 Histórico REAL cargado de Firebase:', history);
+      
+      if (history && history.length > 0) {
+        console.log('[FirebaseUsersList] ✅ Enviando histórico REAL al mapa');
+        onShowHistory(userId, history);
+      } else {
+        console.log('[FirebaseUsersList] ⚠️ No se encontró histórico para la fecha objetivo');
+        alert(`No se encontró histórico para ${userId} en la fecha ${targetDate}.`);
+      }
     } catch (err) {
-      console.error('Error cargando histórico:', err);
+      console.error('[FirebaseUsersList] ❌ Error cargando histórico:', err);
+      alert(`Error al cargar el histórico: ${err.message}`);
     }
   };
 
@@ -181,33 +215,42 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onShowH
             const isActive = isUserActive(user);
             const timeAgo = getTimeAgo(user.currentPosition?.timestamp || user.lastSeen);
             const currentPos = userPositions[user.id] || user.currentPosition;
+            const userColor = getUserColor(user.id);
+            const userColorLight = getUserColorLight(user.id);
 
             return (
               <Card 
                 key={user.id}
-                className={`p-3 transition-all ${
-                  isWatching 
-                    ? 'border-green-300 bg-green-50' 
-                    : 'border-gray-200 hover:shadow-sm'
-                }`}
+                className={`p-3 transition-all border-l-4`}
+                style={{ 
+                  borderLeftColor: userColor,
+                  backgroundColor: isWatching ? userColorLight : 'white'
+                }}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="flex-shrink-0">
-                      <div className={`p-2 rounded-full ${
-                        isWatching ? 'bg-green-100' : 'bg-gray-100'
-                      }`}>
-                        <User className={`w-4 h-4 ${
-                          isWatching ? 'text-green-600' : 'text-gray-600'
-                        }`} />
+                      <div 
+                        className="p-2 rounded-full"
+                        style={{ backgroundColor: userColorLight }}
+                      >
+                        <User 
+                          className="w-4 h-4" 
+                          style={{ color: userColor }}
+                        />
                       </div>
                     </div>
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium text-gray-900 truncate">
-                          {user.name}
+                          {user.name || user.id}
                         </p>
+                        <div 
+                          className="w-3 h-3 rounded-full border border-white shadow-sm flex-shrink-0"
+                          style={{ backgroundColor: userColor }}
+                          title={`Color del usuario: ${userColor}`}
+                        />
                         <Badge className={`text-xs px-2 py-0.5 ${
                           isActive 
                             ? 'bg-green-100 text-green-700'

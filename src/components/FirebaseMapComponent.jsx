@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Wrapper } from '@googlemaps/react-wrapper';
+import { getUserColor } from '../utils/userColors';
 
 const FirebaseMapComponent = ({ 
   location, 
@@ -8,7 +9,6 @@ const FirebaseMapComponent = ({
 }) => {
   const mapRef = useRef(null);
   const [map, setMap] = useState(null);
-  const currentLocationMarkerRef = useRef(null);
   const userMarkersRef = useRef({});
   const polylineRefs = useRef({});
 
@@ -23,50 +23,100 @@ const FirebaseMapComponent = ({
     anchor: { x: 12, y: 24 },
   }), []);
 
-  // Colores para diferentes usuarios
-  const getUserColor = useCallback((userId) => {
-    const colors = [
-      '#EF4444', '#10B981', '#3B82F6', '#8B5CF6', 
-      '#F59E0B', '#EF4444', '#6366F1', '#EC4899',
-      '#84CC16', '#06B6D4', '#F97316', '#14B8A6'
-    ];
-    
-    let hash = 0;
-    for (let i = 0; i < userId.length; i++) {
-      hash = ((hash << 5) - hash + userId.charCodeAt(i)) & 0xffffffff;
-    }
-    return colors[Math.abs(hash) % colors.length];
+  // Función para obtener color de usuario
+  const getColorForUser = useCallback((userId) => {
+    const color = getUserColor(userId);
+    console.log(`[Firebase Map] Color asignado a ${userId}: ${color}`);
+    return color;
   }, []);
 
   // Función para actualizar trayectorias
   const updateTrajectory = useCallback((userId, trajectory, color) => {
     if (!map || !trajectory || trajectory.length === 0) return;
 
-    // Limpiar polyline existente
+    console.log(`[Firebase Map] 📍 Procesando histórico para ${userId}:`, trajectory);
+
+    // Limpiar elementos anteriores de este usuario
     if (polylineRefs.current[userId]) {
       polylineRefs.current[userId].setMap(null);
+      delete polylineRefs.current[userId];
+    }
+    if (userMarkersRef.current[`${userId}_start`]) {
+      userMarkersRef.current[`${userId}_start`].setMap(null);
+      delete userMarkersRef.current[`${userId}_start`];
+    }
+    if (userMarkersRef.current[`${userId}_end`]) {
+      userMarkersRef.current[`${userId}_end`].setMap(null);
+      delete userMarkersRef.current[`${userId}_end`];
     }
 
-    // Crear nueva polyline
-    const path = trajectory.map(point => ({
-      lat: point.latitude,
-      lng: point.longitude
-    }));
+    if (trajectory.length === 1) {
+      // Solo un punto - mostrar un marcador clásico
+      const point = trajectory[0];
+      console.log(`[Firebase Map] 📍 Mostrando punto único en:`, point);
+      
+      const marker = new window.google.maps.Marker({
+        position: { lat: point.latitude, lng: point.longitude },
+        map: map,
+        title: `${userId} - Ubicación histórica`,
+        icon: createUserIcon(color, true),
+        zIndex: 1000
+      });
+      
+      userMarkersRef.current[`${userId}_point`] = marker;
+      
+      // Centrar en el punto único
+      map.setCenter({ lat: point.latitude, lng: point.longitude });
+      map.setZoom(18);
+      
+    } else {
+      // Múltiples puntos - dibujar trayectoria
+      const path = trajectory.map(point => ({
+        lat: point.latitude,
+        lng: point.longitude
+      }));
 
-    const polyline = new window.google.maps.Polyline({
-      path: path,
-      geodesic: true,
-      strokeColor: color,
-      strokeOpacity: 1.0,
-      strokeWeight: 3,
-      zIndex: 100
-    });
+      const polyline = new window.google.maps.Polyline({
+        path: path,
+        geodesic: true,
+        strokeColor: color,
+        strokeOpacity: 1.0,
+        strokeWeight: 4,
+        zIndex: 100
+      });
 
-    polyline.setMap(map);
-    polylineRefs.current[userId] = polyline;
+      polyline.setMap(map);
+      polylineRefs.current[userId] = polyline;
 
-    console.log(`[Firebase Map] Trayectoria actualizada para ${userId}: ${trajectory.length} puntos`);
-  }, [map]);
+      // Marcador de inicio (verde) - pin clásico
+      const startMarker = new window.google.maps.Marker({
+        position: { lat: trajectory[0].latitude, lng: trajectory[0].longitude },
+        map: map,
+        title: `${userId} - Inicio del recorrido`,
+        icon: createUserIcon('#10B981', true),
+        zIndex: 1000
+      });
+      userMarkersRef.current[`${userId}_start`] = startMarker;
+
+      // Marcador de fin (rojo) - pin clásico
+      const lastPoint = trajectory[trajectory.length - 1];
+      const endMarker = new window.google.maps.Marker({
+        position: { lat: lastPoint.latitude, lng: lastPoint.longitude },
+        map: map,
+        title: `${userId} - Fin del recorrido`,
+        icon: createUserIcon('#EF4444', true),
+        zIndex: 1000
+      });
+      userMarkersRef.current[`${userId}_end`] = endMarker;
+
+      // Centrar el mapa en toda la trayectoria
+      const bounds = new window.google.maps.LatLngBounds();
+      path.forEach(point => bounds.extend(point));
+      map.fitBounds(bounds);
+    }
+
+    console.log(`[Firebase Map] ✅ Histórico procesado para ${userId}: ${trajectory.length} punto(s)`);
+  }, [map, createUserIcon]);
 
   // Inicializar mapa
   useEffect(() => {
@@ -101,36 +151,19 @@ const FirebaseMapComponent = ({
     }
   }, [location, map]);
 
-  // Actualizar marcador de ubicación actual (si existe)
-  useEffect(() => {
-    if (!map || !location) return;
-
-    if (currentLocationMarkerRef.current) {
-      currentLocationMarkerRef.current.setMap(null);
-    }
-
-    currentLocationMarkerRef.current = new window.google.maps.Marker({
-      position: { lat: location.latitude, lng: location.longitude },
-      map: map,
-      title: 'Mi ubicación',
-      icon: createUserIcon('#4F46E5', true),
-      zIndex: 1000
-    });
-
-    // Centrar mapa en la ubicación actual
-    map.setCenter({ lat: location.latitude, lng: location.longitude });
-  }, [map, location, createUserIcon]);
-
   // Actualizar marcadores de usuarios observados
   useEffect(() => {
     if (!map) return;
 
     // Limpiar marcadores existentes que ya no están siendo observados
-    Object.keys(userMarkersRef.current).forEach(userId => {
-      if (!watchedUsers[userId]) {
-        if (userMarkersRef.current[userId]) {
-          userMarkersRef.current[userId].setMap(null);
-          delete userMarkersRef.current[userId];
+    Object.keys(userMarkersRef.current).forEach(key => {
+      // Obtener el userId base (sin sufijos como _start, _end, _point)
+      const baseUserId = key.split('_')[0];
+      
+      if (!watchedUsers[baseUserId] && !watchedUsers[key]) {
+        if (userMarkersRef.current[key]) {
+          userMarkersRef.current[key].setMap(null);
+          delete userMarkersRef.current[key];
         }
       }
     });
@@ -140,7 +173,7 @@ const FirebaseMapComponent = ({
       const position = userData.position || userData;
       if (!position || !position.latitude || !position.longitude) return;
 
-      const userColor = getUserColor(userId);
+      const userColor = getColorForUser(userId);
       const isActive = userData.timestamp ? 
         (Date.now() - userData.timestamp) < (5 * 60 * 1000) : true;
 
@@ -198,7 +231,33 @@ const FirebaseMapComponent = ({
         updateTrajectory(userId, trajectories[userId], userColor);
       }
     });
-  }, [map, watchedUsers, trajectories, getUserColor, createUserIcon, updateTrajectory]);
+  }, [map, watchedUsers, trajectories, getColorForUser, createUserIcon, updateTrajectory]);
+
+  // Efecto específico para manejar cambios en trayectorias
+  useEffect(() => {
+    if (!map || Object.keys(trajectories).length === 0) return;
+
+    console.log('[Firebase Map] 📈 Procesando trayectorias:', trajectories);
+
+    // Limpiar marcadores de usuarios observados cuando se muestra trayectoria
+    Object.keys(userMarkersRef.current).forEach(key => {
+      if (!key.includes('_start') && !key.includes('_end') && !key.includes('_point')) {
+        if (userMarkersRef.current[key]) {
+          userMarkersRef.current[key].setMap(null);
+          delete userMarkersRef.current[key];
+        }
+      }
+    });
+
+    // Procesar cada trayectoria
+    Object.entries(trajectories).forEach(([userId, trajectory]) => {
+      if (trajectory && trajectory.length > 0) {
+        const userColor = getColorForUser(userId);
+        console.log(`[Firebase Map] 🗺️ Dibujando trayectoria para ${userId} con ${trajectory.length} puntos`);
+        updateTrajectory(userId, trajectory, userColor);
+      }
+    });
+  }, [map, trajectories, getColorForUser, updateTrajectory]);
 
   const render = (status) => {
     if (status === 'LOADING') {
@@ -230,7 +289,7 @@ const FirebaseMapComponent = ({
     <Wrapper 
       apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "AIzaSyBhPp4KjSRJXvjNH6mhFXq0V6e8mDXeQNE"} 
       render={render}
-      libraries={['places']}
+      libraries={['places', 'marker']}
     />
   );
 };

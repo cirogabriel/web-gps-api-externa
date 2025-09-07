@@ -86,12 +86,25 @@ export default function GPSTracker() {
 
   // Función para mostrar histórico
   const handleShowHistory = (userId, trajectoryData) => {
+    console.log('[App] 📈 Mostrando histórico para:', userId, 'Datos:', trajectoryData);
+    
     setUserTrajectories(prev => ({
       ...prev,
       [userId]: trajectoryData
     }))
     setSelectedUser(userId)
+    
+    // Limpiar usuarios observados para mostrar solo el histórico
+    setWatchedUsers({})
   }
+
+  // Función de prueba para Firebase
+  const testFirebaseConnection = () => {
+    console.log('🔍 Verificando estructura de Firebase...');
+    console.log('ℹ️ Abre la consola del navegador para ver los logs detallados de Firebase');
+    console.log('ℹ️ Presiona el botón "Histórico" en la lista de usuarios para probar la carga de datos');
+    alert('🔍 Test de Firebase iniciado.\n\nRevisar consola del navegador para logs detallados.\nProbar el botón "Histórico" en la lista de usuarios.');
+  };
 
   // Ubicación por defecto para centrar el mapa (Plaza de Armas, Cusco, Perú)
   const defaultLocation = {
@@ -161,6 +174,62 @@ export default function GPSTracker() {
               <div className="text-xs text-gray-500 text-center">
                 Conectado a Firebase Realtime Database
               </div>
+              
+              {/* Información de histórico activo */}
+              {selectedUser && userTrajectories[selectedUser] && (
+                <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded">
+                  <div className="text-xs text-blue-700 font-medium">
+                    Mostrando histórico de: {selectedUser}
+                  </div>
+                  <div className="text-xs text-blue-600 mt-1">
+                    {userTrajectories[selectedUser].length} puntos de recorrido
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      setUserTrajectories({});
+                      setSelectedUser(null);
+                      // Recargar datos de demostración
+                      setTimeout(() => {
+                        const demoData = {
+                          'demo_user_1': {
+                            position: {
+                              latitude: -13.515234,
+                              longitude: -71.977856,
+                              accuracy: 15,
+                              timestamp: Date.now() - 120000
+                            },
+                            timestamp: Date.now() - 120000
+                          },
+                          'demo_user_2': {
+                            position: {
+                              latitude: -13.518123,
+                              longitude: -71.979445,
+                              accuracy: 20,
+                              timestamp: Date.now() - 300000
+                            },
+                            timestamp: Date.now() - 300000
+                          },
+                          'demo_user_3': {
+                            position: {
+                              latitude: -13.514891,
+                              longitude: -71.976234,
+                              accuracy: 12,
+                              timestamp: Date.now() - 60000
+                            },
+                            timestamp: Date.now() - 60000
+                          }
+                        };
+                        setWatchedUsers(demoData);
+                      }, 500);
+                    }}
+                    className="w-full mt-2 text-xs"
+                  >
+                    Volver a vista en tiempo real
+                  </Button>
+                </div>
+              )}
             </Card>
           </div>
 
@@ -172,6 +241,18 @@ export default function GPSTracker() {
             className="w-12 h-12 rounded-full bg-gray-300 hover:bg-gray-400 text-black shadow-lg"
           >
             <User className="w-5 h-5 text-black" />
+          </Button>
+        </div>
+
+        {/* Test Firebase Button */}
+        <div className="p-4 border-t border-gray-100">
+          <Button
+            onClick={testFirebaseConnection}
+            variant="outline"
+            size="sm"
+            className="w-full text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+          >
+            🔍 Test Firebase
           </Button>
         </div>
 
