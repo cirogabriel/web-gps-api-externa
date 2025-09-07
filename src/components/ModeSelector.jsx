@@ -7,17 +7,9 @@ export default function ModeSelector({ onModeSelect, currentMode }) {
 
   const modes = [
     {
-      id: 'tracker',
-      title: 'Ser Rastreado',
-      description: 'Tu ubicación será compartida en tiempo real',
-      icon: Smartphone,
-      color: 'bg-blue-600 hover:bg-blue-700',
-      textColor: 'text-blue-600'
-    },
-    {
       id: 'watcher',
-      title: 'Observar Ubicación',
-      description: 'Ver la ubicación de otros usuarios en tiempo real',
+      title: 'Observar Ubicaciones',
+      description: 'Ver la ubicación de usuarios móviles en tiempo real desde Firebase',
       icon: Monitor,
       color: 'bg-green-600 hover:bg-green-700',
       textColor: 'text-green-600'
@@ -45,19 +37,13 @@ export default function ModeSelector({ onModeSelect, currentMode }) {
           </div>
           
           <div className="text-center">
-            {currentMode === 'tracker' ? (
-              <>
-                <Smartphone className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                <h3 className="font-semibold text-gray-900">Modo Tracker</h3>
-                <p className="text-sm text-gray-600">Tu ubicación se está compartiendo</p>
-              </>
-            ) : (
+            {currentMode === 'watcher' ? (
               <>
                 <Monitor className="w-8 h-8 text-green-600 mx-auto mb-2" />
                 <h3 className="font-semibold text-gray-900">Modo Observador</h3>
-                <p className="text-sm text-gray-600">Viendo ubicaciones en tiempo real</p>
+                <p className="text-sm text-gray-600">Viendo ubicaciones desde Firebase</p>
               </>
-            )}
+            ) : null}
           </div>
         </Card>
       </div>
@@ -69,10 +55,10 @@ export default function ModeSelector({ onModeSelect, currentMode }) {
       <div className="text-center mb-6">
         <div className="flex items-center justify-center gap-2 mb-2">
           <Users className="w-5 h-5 text-gray-700" />
-          <h2 className="text-lg font-semibold text-gray-900">Tracking Colaborativo</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Observador Firebase</h2>
         </div>
         <p className="text-sm text-gray-600">
-          Elige cómo quieres usar la aplicación
+          Conecta con Firebase para ver usuarios móviles en tiempo real
         </p>
       </div>
 

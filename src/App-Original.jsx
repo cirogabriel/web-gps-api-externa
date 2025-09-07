@@ -3,7 +3,7 @@ import { Card } from "./components/ui/card"
 import { Button } from "./components/ui/button"
 import { Badge } from "./components/ui/badge"
 import { Modal, ModalHeader, ModalTitle, ModalContent, ModalFooter } from "./components/ui/modal"
-import { MapPin, Navigation, Clock, Satellite, Settings, User, Menu, Search, Layers, Route, Wifi, Globe, Users } from "lucide-react"
+import { MapPin, Navigation, Clock, Satellite, Settings, User, Menu, Search, Layers, Route, Wifi, Globe, Users, Share2, Copy } from "lucide-react"
 import FirebaseMapComponent from "./components/FirebaseMapComponent"
 import ModeSelector from "./components/ModeSelector"
 import FirebaseUsersList from "./components/FirebaseUsersList"
@@ -20,9 +20,9 @@ export default function GPSTracker() {
   const [selectedUser, setSelectedUser] = useState(null)
   
   // Hook para GPS PWA que bypassea restricciones HTTP
-  const { location: localLocation, error, getCurrentPosition } = usePWAGPS()
-
-  // Función para observar usuarios
+  const { location: localLocation, error, loading, getCurrentPosition } = usePWAGPS()
+  
+  // Función para observar múltiples usuarios
   const handleWatchUsers = (userId, position) => {
     if (userId && position) {
       setWatchedUsers(prev => ({
@@ -57,7 +57,6 @@ export default function GPSTracker() {
     }))
     setSelectedUser(userId)
   }
-
   // Ubicación a mostrar (solo local para centrar el mapa)
   const location = localLocation
   
@@ -103,26 +102,41 @@ export default function GPSTracker() {
   const openInGoogleMaps = () => {
     if (location) {
       const url = `https://www.google.com/maps?q=${location.latitude},${location.longitude}&z=18`
-      window.open(url, '_blank')
+      window.open(url, "_blank")
     }
   }
 
+  useEffect(() => {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-80 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:z-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`
+        fixed inset-y-0 left-0 z-50 w-80 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out
+        lg:relative lg:translate-x-0 lg:z-0
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+      `}
       >
         {/* Sidebar Content Container with relative positioning */}
         <div className="relative h-full flex flex-col">
         {/* Sidebar Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
-              <Satellite className="w-4 h-4 text-white" />
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gray-100">
+              {appMode === 'tracker' ? (
+                <Share2 className="w-5 h-5 text-blue-600" />
+              ) : appMode === 'watcher' ? (
+                <Users className="w-5 h-5 text-green-600" />
+              ) : (
+                <Satellite className="w-5 h-5 text-black" />
+              )}
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900">GPS Firebase</h1>
-              <p className="text-xs text-gray-500">Web Observer</p>
+              <h1 className="text-lg font-semibold text-gray-900">GPS Tracker</h1>
+              <p className="text-xs text-gray-600">
+                {appMode === 'tracker' ? 'Compartiendo ubicación' : 
+                 appMode === 'watcher' ? 'Observando usuarios' : 
+                 'Selecciona modo'}
+              </p>
             </div>
           </div>
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(false)}>
@@ -148,7 +162,11 @@ export default function GPSTracker() {
             <Card className="p-4 bg-white border-gray-200 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${Object.keys(watchedUsers).length > 0 ? "bg-green-500" : "bg-gray-400"}`} />
+                  <div className={`w-2 h-2 rounded-full ${
+                    Object.keys(watchedUsers).length > 0 
+                      ? "bg-green-500" 
+                      : "bg-gray-400"
+                  }`} />
                   <span className="text-sm font-medium text-gray-900">
                     {Object.keys(watchedUsers).length > 0 
                       ? `Observando ${Object.keys(watchedUsers).length} usuario${Object.keys(watchedUsers).length > 1 ? 's' : ''}`
@@ -156,7 +174,11 @@ export default function GPSTracker() {
                     }
                   </span>
                 </div>
-                <Badge className={`text-xs px-2 py-1 rounded-full font-medium ${Object.keys(watchedUsers).length > 0 ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-700"}`}>
+                <Badge className={`text-xs px-2 py-1 rounded-full font-medium ${
+                  Object.keys(watchedUsers).length > 0
+                    ? "bg-green-100 text-green-700"
+                    : "bg-gray-200 text-gray-700"
+                }`}>
                   {Object.keys(watchedUsers).length > 0 ? "OBSERVANDO" : "ESPERANDO"}
                 </Badge>
               </div>
@@ -173,11 +195,11 @@ export default function GPSTracker() {
           <Button
             onClick={() => setAuthorModalOpen(true)}
             size="icon"
-            className="w-12 h-12 rounded-full bg-gray-300 hover:bg-gray-400 text-black shadow-lg"
-          >
-            <User className="w-5 h-5 text-black" />
-          </Button>
-        </div>
+              className="w-12 h-12 rounded-full bg-gray-300 hover:bg-gray-400 text-black shadow-lg"
+            >
+              <User className="w-5 h-5 text-black" />
+            </Button>
+          </div>
 
         {/* Location Details */}
         {location && (
@@ -226,101 +248,106 @@ export default function GPSTracker() {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-gray-100">
-                  <Button
-                    onClick={openInGoogleMaps}
-                    size="sm"
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs"
-                  >
-                    <Globe className="w-3 h-3 mr-1" />
-                    Abrir en Google Maps
-                  </Button>
+                <div>
+                  <p className="text-gray-600">Última actualización</p>
+                  <p className="flex items-center gap-1 text-gray-900">
+                    <Clock className="w-3 h-3" />
+                    {new Date(location.timestamp).toLocaleTimeString()}
+                  </p>
                 </div>
               </div>
+
+              <Button
+                onClick={openInGoogleMaps}
+                className="w-full mt-3 text-xs bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg py-2"
+              >
+                <MapPin className="w-3 h-3 mr-2" />
+                Ver en Google Maps
+              </Button>
             </Card>
 
-            {/* GPS Status */}
-            <Card className="p-3 bg-white border-gray-200 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-xs font-medium text-gray-900">GPS Activo</span>
+            {/* Quick Actions */}
+            <div className="grid grid-cols-2 gap-2">
+              <Card 
+                className="p-3 bg-white border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer shadow-sm"
+                onClick={() => setAuthorModalOpen(true)}
+              >
+                <div className="text-center">
+                  <User className="w-5 h-5 text-black mx-auto mb-1" />
+                  <p className="text-xs font-medium text-gray-900">Autor</p>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Wifi className="w-3 h-3 text-green-600" />
-                  <span className="text-xs text-green-600">Conectado</span>
+              </Card>
+              <Card className="p-3 bg-white border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer shadow-sm">
+                <div className="text-center">
+                  <Clock className="w-5 h-5 text-black mx-auto mb-1" />
+                  <p className="text-xs font-medium text-gray-900">Historial</p>
                 </div>
-              </div>
-              
-              <div className="mt-2 text-xs text-gray-500">
-                <div className="flex justify-between">
-                  <span>Última actualización:</span>
-                  <span>{new Date().toLocaleTimeString()}</span>
-                </div>
-              </div>
-            </Card>
+              </Card>
+            </div>
           </div>
         )}
 
         {/* Error Display */}
         {error && (
           <div className="p-4">
-            <Card className="p-3 bg-red-50 border-red-200">
-              <p className="text-xs text-red-600">{error}</p>
+            <Card className="p-3 bg-orange-50 border-orange-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Wifi className="w-4 h-4 text-orange-600" />
+                <h3 className="text-sm font-semibold text-orange-900">Aviso</h3>
+              </div>
+              <p className="text-xs text-orange-800">{error}</p>
             </Card>
           </div>
         )}
-
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-200 mt-auto">
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            <span>Firebase Observer</span>
-            <div className="flex items-center gap-1">
-              <Settings className="w-3 h-3" />
-              <span>v2.0</span>
-            </div>
-          </div>
-        </div>
         </div>
       </div>
 
-      {/* Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" 
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <Menu className="w-5 h-5" />
+      <div className="flex-1 flex flex-col">
+        {/* Top Bar - Mobile */}
+        <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200">
+          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
+            <Menu className="w-5 h-5" />
+          </Button>
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-gray-100">
+              <Satellite className="w-4 h-4 text-black" />
+            </div>
+            <span className="font-semibold text-sm text-gray-900">GPS Tracker</span>
+          </div>
+          <div className="flex gap-1">
+            <Button variant="ghost" size="icon">
+              <Layers className="w-4 h-4 text-gray-600" />
             </Button>
-            
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-sm font-medium text-gray-900">Firebase Realtime</span>
-              </div>
-            </div>
+            <Button variant="ghost" size="icon">
+              <Settings className="w-4 h-4 text-gray-600" />
+            </Button>
+          </div>
+        </div>
 
-            <div className="flex items-center gap-2">
-              <Button size="icon" variant="ghost" className="text-gray-600">
-                <Search className="w-4 h-4" />
-              </Button>
-              <Button size="icon" variant="ghost" className="text-gray-600">
-                <Layers className="w-4 h-4" />
-              </Button>
-            </div>
+        {/* Desktop Top Controls */}
+        <div className="hidden lg:flex items-center justify-between p-4 bg-white/80 border-b border-gray-200">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+              <Layers className="w-4 h-4 mr-2" />
+              Capas
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              onClick={() => setAuthorModalOpen(true)}
+            >
+              <User className="w-4 h-4 mr-2" />
+              Autor
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+              <Settings className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+              <User className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 
@@ -350,27 +377,26 @@ export default function GPSTracker() {
             <Button size="icon" className="bg-white/90 backdrop-blur-sm border border-gray-200 hover:bg-white shadow-lg text-gray-700">
               <MapPin className="w-4 h-4" />
             </Button>
-            <Button size="icon" className="bg-white/90 backdrop-blur-sm border border-gray-200 hover:bg-white shadow-lg text-gray-700">
-              <Route className="w-4 h-4" />
-            </Button>
           </div>
         </div>
       </div>
 
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/30 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
       {/* Author Modal */}
-      <Modal open={authorModalOpen} onOpenChange={setAuthorModalOpen}>
+      <Modal isOpen={authorModalOpen} onClose={() => setAuthorModalOpen(false)}>
         <ModalHeader>
-          <ModalTitle>Información del Desarrollador</ModalTitle>
+          <ModalTitle>Información del Autor</ModalTitle>
         </ModalHeader>
         
         <ModalContent>
-          <div className="p-6">
+          <div className="space-y-4">
             <div className="text-center mb-6">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                <User className="w-10 h-10 text-white" />
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <User className="w-8 h-8 text-black" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900">GPS Firebase Tracker</h2>
-              <p className="text-gray-600">Aplicación de seguimiento en tiempo real</p>
             </div>
             
             <div className="space-y-3 text-sm">
@@ -397,7 +423,7 @@ export default function GPSTracker() {
             
             <div className="mt-6 p-3 bg-gray-50 rounded-lg">
               <p className="text-xs text-gray-600 text-center">
-                Aplicación GPS Tracker con Firebase desarrollada como proyecto de Sistemas Embebidos
+                Aplicación GPS Tracker desarrollada como proyecto de Sistemas Embebidos
               </p>
             </div>
           </div>

@@ -6,16 +6,28 @@
     
     console.log('[GPS-BYPASS] 🚀 Iniciando bypass de restricciones GPS');
     
-    // TRUCO 1: Modificar window.location para simular HTTPS
-    Object.defineProperty(window.location, 'protocol', {
-        writable: true,
-        value: 'https:'
-    });
+    // TRUCO 1: Modificar window.location para simular HTTPS de manera segura
+    try {
+        if (window.location.protocol !== 'https:') {
+            Object.defineProperty(window.location, 'protocol', {
+                writable: true,
+                value: 'https:'
+            });
+        }
+    } catch (error) {
+        console.log('[GPS-BYPASS] ⚠️ No se pudo modificar protocol:', error.message);
+    }
     
-    Object.defineProperty(window.location, 'origin', {
-        writable: true,
-        value: 'https://localhost'
-    });
+    try {
+        if (!window.location.origin.startsWith('https://')) {
+            Object.defineProperty(window.location, 'origin', {
+                writable: true,
+                value: 'https://localhost'
+            });
+        }
+    } catch (error) {
+        console.log('[GPS-BYPASS] ⚠️ No se pudo modificar origin:', error.message);
+    }
     
     // TRUCO 2: Override de navigator.geolocation completo
     if (navigator.geolocation) {
