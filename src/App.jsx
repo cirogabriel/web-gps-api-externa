@@ -5,22 +5,16 @@ import { Badge } from "./components/ui/badge"
 import { Modal, ModalHeader, ModalTitle, ModalContent, ModalFooter } from "./components/ui/modal"
 import { MapPin, Navigation, Clock, Satellite, Settings, User, Menu, Search, Layers, Route, Wifi, Globe, Users } from "lucide-react"
 import FirebaseMapComponent from "./components/FirebaseMapComponent"
-import ModeSelector from "./components/ModeSelector"
 import FirebaseUsersList from "./components/FirebaseUsersList"
-import { usePWAGPS } from "./hooks/usePWAGPS"
 
 export default function GPSTracker() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [authorModalOpen, setAuthorModalOpen] = useState(false)
-  const [appMode, setAppMode] = useState(null) // null, 'watcher'
   
   // Estados para Firebase
   const [watchedUsers, setWatchedUsers] = useState({})
   const [userTrajectories, setUserTrajectories] = useState({})
   const [selectedUser, setSelectedUser] = useState(null)
-  
-  // Hook para GPS PWA que bypassea restricciones HTTP
-  const { location: localLocation, error, getCurrentPosition } = usePWAGPS()
 
   // Función para observar usuarios
   const handleWatchUsers = (userId, position) => {
@@ -58,54 +52,21 @@ export default function GPSTracker() {
     setSelectedUser(userId)
   }
 
-  // Ubicación a mostrar (solo local para centrar el mapa)
-  const location = localLocation
-  
-  // Ubicación por defecto si no hay ninguna disponible
+  // Ubicación por defecto para centrar el mapa (Cusco, Perú)
   const defaultLocation = {
-    latitude: -13.5409742, // Cusco, Perú
+    latitude: -13.5409742,
     longitude: -71.9842674,
     accuracy: 100,
     timestamp: Date.now(),
     source: 'default'
   }
   
-  const finalLocation = location || defaultLocation
-  
   // Debug logging
   useEffect(() => {
     console.log('[App] 🔄 Estado actual:', {
-      appMode,
-      finalLocation: finalLocation ? 'SÍ' : 'NO',
-      localLocation: localLocation ? 'SÍ' : 'NO',
       watchedUsersCount: Object.keys(watchedUsers).length
     });
-  }, [appMode, finalLocation, localLocation, watchedUsers])
-
-  // Manejar cambio de modo
-  const handleModeSelect = async (mode) => {
-    setAppMode(mode)
-    if (mode === 'watcher') {
-      console.log("[App] Modo Observador Firebase seleccionado")
-      
-      // Obtener ubicación GPS para centrar el mapa si no la tenemos
-      if (!localLocation) {
-        console.log('[App] 🗺️ Obteniendo ubicación para centrar mapa')
-        try {
-          await getCurrentPosition()
-        } catch (error) {
-          console.warn('[App] No se pudo obtener ubicación GPS:', error)
-        }
-      }
-    }
-  }
-
-  const openInGoogleMaps = () => {
-    if (location) {
-      const url = `https://www.google.com/maps?q=${location.latitude},${location.longitude}&z=18`
-      window.open(url, '_blank')
-    }
-  }
+  }, [watchedUsers])
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -130,24 +91,18 @@ export default function GPSTracker() {
           </Button>
         </div>
 
-        {/* Selector de modo */}
-        {!appMode && <ModeSelector onModeSelect={handleModeSelect} currentMode={appMode} />}
-
-        {/* Lista de usuarios Firebase (modo observador) */}
-        {appMode === 'watcher' && (
-          <FirebaseUsersList 
-            onWatchUser={handleWatchUsers}
-            onStopWatching={handleStopWatching}
-            onShowHistory={handleShowHistory}
-          />
-        )}
+        {/* Lista de usuarios Firebase */}
+        <FirebaseUsersList 
+          onWatchUser={handleWatchUsers}
+          onStopWatching={handleStopWatching}
+          onShowHistory={handleShowHistory}
+        />
 
         {/* Controles de observación */}
-        {appMode === 'watcher' && (
-          <div className="p-4">
-            <Card className="p-4 bg-white border-gray-200 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
+        <div className="p-4">
+          <Card className="p-4 bg-white border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${Object.keys(watchedUsers).length > 0 ? "bg-green-500" : "bg-gray-400"}`} />
                   <span className="text-sm font-medium text-gray-900">
                     {Object.keys(watchedUsers).length > 0 
@@ -166,7 +121,6 @@ export default function GPSTracker() {
               </div>
             </Card>
           </div>
-        )}
 
         {/* Author Button - Circular button at bottom left corner */}
         <div className="absolute bottom-4 left-4">
@@ -178,98 +132,6 @@ export default function GPSTracker() {
             <User className="w-5 h-5 text-black" />
           </Button>
         </div>
-
-        {/* Location Details */}
-        {location && (
-          <div className="p-4 space-y-4">
-            <Card className="p-4 bg-white border-gray-200 shadow-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <MapPin className="w-4 h-4 text-black" />
-                <h3 className="text-sm font-semibold text-gray-900">Ubicación Actual</h3>
-              </div>
-
-              <div className="space-y-3 text-xs">
-                <div className="grid grid-cols-1 gap-2">
-                  <div>
-                    <p className="text-gray-600">Coordenadas</p>
-                    <p className="font-mono text-gray-900">
-                      {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
-                    </p>
-                  </div>
-                  
-                  {/* Información de la fuente de ubicación */}
-                  <div>
-                    <p className="text-gray-600">Fuente</p>
-                    <div className="flex items-center gap-1">
-                      <Satellite className="w-3 h-3 text-green-600" />
-                      <p className="text-green-600 text-xs">GPS del dispositivo</p>
-                    </div>
-                  </div>
-                  
-                  {/* Mostrar información de ciudad si está disponible */}
-                  {location.city && (
-                    <div>
-                      <p className="text-gray-600">Ubicación</p>
-                      <p className="text-gray-900 text-xs">{location.city}, {location.region}</p>
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-between">
-                    <div>
-                      <p className="text-gray-600">Precisión</p>
-                      <p className="text-gray-900">{Math.round(location.accuracy)}m</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600">Velocidad</p>
-                      <p className="text-gray-900">{location.speed ? Math.round(location.speed * 3.6) : 0} km/h</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-gray-100">
-                  <Button
-                    onClick={openInGoogleMaps}
-                    size="sm"
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs"
-                  >
-                    <Globe className="w-3 h-3 mr-1" />
-                    Abrir en Google Maps
-                  </Button>
-                </div>
-              </div>
-            </Card>
-
-            {/* GPS Status */}
-            <Card className="p-3 bg-white border-gray-200 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-xs font-medium text-gray-900">GPS Activo</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Wifi className="w-3 h-3 text-green-600" />
-                  <span className="text-xs text-green-600">Conectado</span>
-                </div>
-              </div>
-              
-              <div className="mt-2 text-xs text-gray-500">
-                <div className="flex justify-between">
-                  <span>Última actualización:</span>
-                  <span>{new Date().toLocaleTimeString()}</span>
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {/* Error Display */}
-        {error && (
-          <div className="p-4">
-            <Card className="p-3 bg-red-50 border-red-200">
-              <p className="text-xs text-red-600">{error}</p>
-            </Card>
-          </div>
-        )}
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-200 mt-auto">
@@ -326,21 +188,12 @@ export default function GPSTracker() {
 
         {/* Map Container */}
         <div className="flex-1 relative bg-gray-100">
-          {finalLocation ? (
-            <FirebaseMapComponent 
-              location={finalLocation} 
-              watchedUsers={watchedUsers}
-              trajectories={userTrajectories}
-              mode={appMode || 'observer'}
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Cargando mapa...</p>
-              </div>
-            </div>
-          )}
+          <FirebaseMapComponent 
+            location={defaultLocation} 
+            watchedUsers={watchedUsers}
+            trajectories={userTrajectories}
+            mode="observer"
+          />
 
           {/* Floating Controls */}
           <div className="absolute bottom-6 right-6 flex flex-col gap-2">
