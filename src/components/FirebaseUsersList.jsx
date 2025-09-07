@@ -7,7 +7,7 @@ import useFirebaseUsers from '../hooks/useFirebaseUsers';
 import { getUserColor, getUserColorLight } from '../utils/userColors';
 
 export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenHistoryModal }) {
-  const { users, loading, error, loadUsers, watchUser, stopWatchingUser } = useFirebaseUsers();
+  const { users, loading, error, loadUsers, getCurrentPosition } = useFirebaseUsers();
   const [liveWatching, setLiveWatching] = useState(new Set());
   const [userPositions, setUserPositions] = useState({});
 
@@ -20,41 +20,52 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
     return () => clearInterval(interval);
   }, [loadUsers]);
 
-  // Función para iniciar seguimiento en vivo
-  const handleStartLiveTracking = (userId) => {
-    const unsubscribe = watchUser(userId, (data) => {
-      setUserPositions(prev => ({
-        ...prev,
-        [userId]: data.position
-      }));
-      
-      // Notificar al componente padre para actualizar el mapa
-      onWatchUser(userId, data.position);
-    });
-
-    setLiveWatching(prev => new Set([...prev, userId]));
+  // Función SIMPLE para ver en vivo - obtener posición y mostrarla
+  const handleStartLiveTracking = async (userId) => {
+    console.log(`[Ver en Vivo] 🎯 Obteniendo posición de ${userId}...`);
     
-    // Guardar función de cleanup para este usuario
-    return unsubscribe;
+    try {
+      // 1. Obtener la posición actual de Firebase
+      const position = await getCurrentPosition(userId);
+      
+      if (position) {
+        console.log(`[Ver en Vivo] ✅ Posición obtenida:`, position);
+        
+        // 2. Agregar a la lista de seguimiento
+        setLiveWatching(prev => new Set([...prev, userId]));
+        
+        // 3. Pasar al mapa para que se mueva allí (IGUAL QUE EL HISTÓRICO)
+        if (onWatchUser) {
+          // Crear estructura como el histórico pero con una sola posición
+          onWatchUser(userId, position);
+        }
+        
+        console.log(`[Ver en Vivo] 🗺️ Posición enviada al mapa para ${userId}`);
+      } else {
+        console.error(`[Ver en Vivo] ❌ No se encontró posición para ${userId}`);
+        alert(`No hay posición actual disponible para ${userId}`);
+      }
+    } catch (error) {
+      console.error(`[Ver en Vivo] ❌ Error:`, error);
+      alert(`Error obteniendo posición: ${error.message}`);
+    }
   };
 
-  // Función para detener seguimiento en vivo
+  // Función SIMPLE para detener seguimiento
   const handleStopLiveTracking = (userId) => {
-    stopWatchingUser(userId);
+    console.log(`[Ver en Vivo] 🛑 Deteniendo seguimiento de ${userId}`);
+    
+    // Remover de la lista de observados
     setLiveWatching(prev => {
       const newSet = new Set(prev);
       newSet.delete(userId);
       return newSet;
     });
     
-    // Remover posición del estado
-    setUserPositions(prev => {
-      const newPositions = { ...prev };
-      delete newPositions[userId];
-      return newPositions;
-    });
-
-    onStopWatching(userId);
+    // Notificar al componente padre para limpiar el mapa
+    if (onStopWatching) {
+      onStopWatching(userId);
+    }
   };
 
   // Función para abrir el modal de histórico
@@ -63,11 +74,11 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
     onOpenHistoryModal(userId);
   };
 
-  // Función para verificar si un usuario está activo (menos de 1 minuto)
-  const isUserActive = (user) => {
-    const currentTime = Date.now();
-    const lastUpdate = user.currentPosition?.timestamp || user.lastSeen;
-    return lastUpdate && (currentTime - lastUpdate) < (1 * 60 * 1000); // 1 minuto
+  // Función para verificar si un usuario tiene posición actual
+  const hasCurrentPosition = (user) => {
+    return user.currentPosition && 
+           user.currentPosition.latitude && 
+           user.currentPosition.longitude;
   };
 
   // Función para obtener el tiempo transcurrido
@@ -174,7 +185,7 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
           .sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0))
           .map((user) => {
             const isWatching = liveWatching.has(user.id);
-            const isActive = isUserActive(user);
+            const hasPosition = hasCurrentPosition(user);
             const timeAgo = getTimeAgo(user.currentPosition?.timestamp || user.lastSeen);
             const currentPos = userPositions[user.id] || user.currentPosition;
             const userColor = getUserColor(user.id);
@@ -214,11 +225,11 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
                           title={`Color del usuario: ${userColor}`}
                         />
                         <Badge className={`text-xs px-2 py-0.5 ${
-                          isActive 
-                            ? 'bg-green-100 text-green-700'
+                          hasPosition 
+                            ? 'bg-blue-100 text-blue-700'
                             : 'bg-gray-100 text-gray-600'
                         }`}>
-                          {isActive ? 'Activo' : 'Inactivo'}
+                          {hasPosition ? 'Con ubicación' : 'Sin ubicación'}
                         </Badge>
                       </div>
                       
@@ -241,7 +252,7 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    {/* Botón Seguir en vivo / Detener */}
+                    {/* Botón Ver en vivo / Dejar de ver */}
                     <Button
                       onClick={() => {
                         if (isWatching) {
@@ -250,12 +261,12 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
                           handleStartLiveTracking(user.id);
                         }
                       }}
-                      disabled={!isActive && !isWatching}
+                      disabled={!hasPosition && !isWatching}
                       size="sm"
                       className={`text-xs px-2 py-1 ${
                         isWatching
                           ? 'bg-red-600 hover:bg-red-700 text-white'
-                          : isActive
+                          : hasPosition
                             ? 'bg-green-600 hover:bg-green-700 text-white'
                             : 'bg-gray-400 text-gray-600 cursor-not-allowed'
                       }`}
@@ -263,12 +274,12 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
                       {isWatching ? (
                         <>
                           <Square className="w-3 h-3 mr-1" />
-                          Detener
+                          Dejar de ver
                         </>
                       ) : (
                         <>
                           <Play className="w-3 h-3 mr-1" />
-                          {isActive ? 'Seguir en vivo' : 'Inactivo'}
+                          Ver en vivo
                         </>
                       )}
                     </Button>

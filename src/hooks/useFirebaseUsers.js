@@ -47,14 +47,55 @@ export const useFirebaseUsers = () => {
     loadUsers();
   }, [loadUsers]);
 
+  // Obtener posición actual de un usuario (SIMPLE Y DIRECTO)
+  const getCurrentPosition = useCallback(async (userId) => {
+    try {
+      console.log(`[Firebase] 🎯 Obteniendo posición actual de ${userId}...`);
+      
+      const positionRef = ref(db, `users/${userId}/currentPosition`);
+      const snapshot = await get(positionRef);
+      
+      if (snapshot.exists()) {
+        const position = snapshot.val();
+        console.log(`[Firebase] ✅ Posición encontrada para ${userId}:`, position);
+        
+        // Retornar en el formato exacto que necesita el mapa
+        return {
+          latitude: position.latitude,
+          longitude: position.longitude,
+          accuracy: position.accuracy,
+          timestamp: position.timestamp,
+          userId: userId
+        };
+      } else {
+        console.log(`[Firebase] ⚠️ No hay posición actual para ${userId}`);
+        return null;
+      }
+    } catch (error) {
+      console.error(`[Firebase] ❌ Error obteniendo posición de ${userId}:`, error);
+      return null;
+    }
+  }, []);
+
   // Escuchar cambios en tiempo real de un usuario específico
-  const watchUserPosition = useCallback((userId) => {
+  const watchUserPosition = useCallback((userId, onPositionUpdate = null) => {
+    console.log(`[Firebase] 👁️ Iniciando seguimiento en vivo de ${userId}`);
+    
     const userRef = ref(db, `users/${userId}/currentPosition`);
     
     const unsubscribe = onValue(userRef, (snapshot) => {
       if (snapshot.exists()) {
         const position = snapshot.val();
         console.log(`[Firebase] 📍 Nueva posición de ${userId}:`, position);
+        
+        // Crear objeto de posición completo
+        const positionData = {
+          lat: position.latitude,
+          lng: position.longitude,
+          accuracy: position.accuracy || 0,
+          timestamp: position.timestamp || Date.now(),
+          savedAt: position.savedAt || position.timestamp || Date.now()
+        };
         
         // Actualizar el usuario en la lista
         setUsers(prevUsers => 
@@ -64,7 +105,16 @@ export const useFirebaseUsers = () => {
               : user
           )
         );
+        
+        // Notificar al callback si existe (para el mapa)
+        if (onPositionUpdate && typeof onPositionUpdate === 'function') {
+          onPositionUpdate(userId, positionData);
+        }
+      } else {
+        console.log(`[Firebase] ⚠️ No hay posición actual para ${userId}`);
       }
+    }, (error) => {
+      console.error(`[Firebase] ❌ Error escuchando posición de ${userId}:`, error);
     });
 
     // Guardar referencia para poder cancelar después
@@ -220,6 +270,67 @@ export const useFirebaseUsers = () => {
     };
   }, [stopWatchingUser]);
 
+  // Función para obtener posición actual y configurar tracking en vivo
+  const startLiveTracking = useCallback(async (userId) => {
+    try {
+      console.log(`[Firebase] 🚀 Iniciando live tracking para ${userId}`);
+      
+      // 1️⃣ Obtener posición actual
+      const currentPosRef = ref(db, `users/${userId}/currentPosition`);
+      const snapshot = await get(currentPosRef);
+      
+      if (!snapshot.exists()) {
+        console.log(`[Firebase] ⚠️ No hay posición actual para ${userId}`);
+        return { success: false, error: 'No hay posición actual' };
+      }
+
+      const currentPos = snapshot.val();
+      console.log(`[Firebase] 📍 Posición actual de ${userId}:`, currentPos);
+      
+      // Formatear posición para el mapa (igual que en histórico)
+      const position = {
+        latitude: currentPos.latitude,
+        longitude: currentPos.longitude,
+        accuracy: currentPos.accuracy || 0,
+        timestamp: currentPos.timestamp || Date.now()
+      };
+
+      // 2️⃣ Configurar listener para actualizaciones en tiempo real
+      const liveListener = onValue(currentPosRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const pos = snapshot.val();
+          console.log(`[Firebase] 🔄 Nueva posición para ${userId}:`, pos);
+          // El listener se manejará en el componente
+        }
+      });
+
+      // Guardar listener
+      listenersRef.current[`live_${userId}`] = liveListener;
+
+      return { 
+        success: true, 
+        position: position,
+        listener: liveListener
+      };
+      
+    } catch (error) {
+      console.error(`[Firebase] ❌ Error en live tracking para ${userId}:`, error);
+      return { success: false, error: error.message };
+    }
+  }, []);
+
+  // Función para detener live tracking
+  const stopLiveTracking = useCallback((userId) => {
+    const listenerKey = `live_${userId}`;
+    
+    if (listenersRef.current[listenerKey]) {
+      console.log(`[Firebase] 🛑 Deteniendo live tracking para ${userId}`);
+      const currentPosRef = ref(db, `users/${userId}/currentPosition`);
+      off(currentPosRef, 'value', listenersRef.current[listenerKey]);
+      delete listenersRef.current[listenerKey];
+    }
+  }, []);
+
   return {
     users,
     loading,
@@ -228,7 +339,10 @@ export const useFirebaseUsers = () => {
     watchUserPosition,
     stopWatchingUser,
     loadUserHistory,
-    loadUserHistoryByRange
+    loadUserHistoryByRange,
+    startLiveTracking,
+    stopLiveTracking,
+    getCurrentPosition
   };
 };
 

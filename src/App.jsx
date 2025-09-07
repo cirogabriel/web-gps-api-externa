@@ -67,17 +67,24 @@ export default function GPSTracker() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Función para observar usuarios
-  const handleWatchUsers = (userId, position) => {
-    if (userId && position) {
+  // Función para observar usuarios (FUNCIONA PARA HISTÓRICO Y LIVE TRACKING)
+  const handleWatchUsers = (userId, positionData) => {
+    console.log('[App] 📍 Datos recibidos para:', userId, 'Tipo:', Array.isArray(positionData) ? 'Array de posiciones' : 'Posición única');
+    
+    if (userId && positionData) {
       setWatchedUsers(prev => ({
         ...prev,
         [userId]: {
-          position,
+          position: positionData,
           timestamp: Date.now()
         }
       }))
       setSelectedUser(userId)
+      
+      // Limpiar trayectorias cuando se inicia live tracking
+      if (!Array.isArray(positionData)) {
+        setUserTrajectories({});
+      }
     }
   }
 
