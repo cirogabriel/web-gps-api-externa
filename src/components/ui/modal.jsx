@@ -1,4 +1,5 @@
 import React from "react"
+import { createPortal } from "react-dom"
 import { cn } from "../../lib/utils"
 import { X } from "lucide-react"
 import { Button } from "./button"
@@ -13,24 +14,24 @@ const Modal = ({ isOpen, onClose, children, className }) => {
 
   console.log('[Modal] ✅ Modal está abierto, renderizando...');
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+  const modalContent = (
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
       {/* Overlay */}
       <div 
-        className="fixed inset-0 bg-black/50" 
+        className="absolute inset-0 bg-black/50" 
         onClick={onClose}
       />
       
       {/* Modal Content */}
       <div className={cn(
-        "relative bg-white rounded-lg border border-gray-200 shadow-2xl max-w-lg w-full mx-4",
+        "relative bg-white rounded-lg border border-gray-200 shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto",
         className
       )}>
         {/* Close Button */}
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          className="absolute top-4 right-4 z-10 text-gray-400 hover:text-gray-600"
           onClick={onClose}
         >
           <X className="w-4 h-4" />
@@ -39,7 +40,10 @@ const Modal = ({ isOpen, onClose, children, className }) => {
         {children}
       </div>
     </div>
-  )
+  );
+
+  // Usar portal para renderizar el modal en el body, escapando del contenedor padre
+  return createPortal(modalContent, document.body);
 }
 
 const ModalHeader = ({ children, className }) => (

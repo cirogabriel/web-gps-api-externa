@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { db } from '../firebase';
-import { ref, onValue, get, off } from 'firebase/database';
+import { ref, onValue, get, off, remove } from 'firebase/database';
 
 export const useFirebaseUsers = () => {
   const [users, setUsers] = useState([]);
@@ -331,6 +331,40 @@ export const useFirebaseUsers = () => {
     }
   }, []);
 
+  // Función para eliminar todos los datos de Firebase
+  const deleteAllData = useCallback(async () => {
+    try {
+      console.log('[Firebase] 🗑️ Eliminando todos los datos...');
+      
+      // Eliminar todos los usuarios
+      const usersRef = ref(db, 'users');
+      await remove(usersRef);
+      
+      console.log('[Firebase] ✅ Todos los datos eliminados exitosamente');
+      
+      // Limpiar estado local
+      setUsers([]);
+      
+      // Limpiar todos los listeners activos
+      Object.values(listenersRef.current).forEach(listener => {
+        if (typeof listener === 'function') {
+          try {
+            listener();
+          } catch (error) {
+            console.error('[Firebase] Error limpiando listener:', error);
+          }
+        }
+      });
+      listenersRef.current = {};
+      
+      return { success: true };
+    } catch (error) {
+      console.error('[Firebase] ❌ Error eliminando datos:', error);
+      setError(`Error eliminando datos: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  }, []);
+
   return {
     users,
     loading,
@@ -342,7 +376,8 @@ export const useFirebaseUsers = () => {
     loadUserHistoryByRange,
     startLiveTracking,
     stopLiveTracking,
-    getCurrentPosition
+    getCurrentPosition,
+    deleteAllData
   };
 };
 

@@ -3,7 +3,7 @@ import { Card } from "./components/ui/card"
 import { Button } from "./components/ui/button"
 import { Badge } from "./components/ui/badge"
 import { Modal, ModalHeader, ModalTitle, ModalContent, ModalFooter } from "./components/ui/modal"
-import { MapPin, Navigation, Clock, Satellite, Settings, User, Menu, Search, Layers, Route, Wifi, Globe, Users, Trash2 } from "lucide-react"
+import { MapPin, Navigation, Clock, Satellite, Settings, User, Menu, Search, Layers, Route, Wifi, Globe, Users } from "lucide-react"
 import FirebaseMapComponent from "./components/FirebaseMapComponent"
 import FirebaseUsersList from "./components/FirebaseUsersList"
 import HistoryModal from "./components/HistoryModal"
@@ -309,9 +309,6 @@ export default function GPSTracker() {
                   }}
                 >
                   <User className="w-4 h-4" />
-                </Button>
-                <Button size="icon" variant="ghost" className="text-gray-600">
-                  <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
             </div>
