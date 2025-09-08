@@ -86,16 +86,17 @@ export default function GPSTracker() {
         console.log(`[App] 🗺️ Trayectoria histórica agregada para ${userId}`);
       }
       
-      // Para modo en vivo: agregar a usuarios observados
+      // Para modo en vivo: agregar a usuarios observados CON MODO CORRECTO
       if (mode === 'live' && !Array.isArray(positionData)) {
         setWatchedUsers(prev => ({
           ...prev,
           [userId]: {
             position: positionData,
+            mode: 'live',  // 🔥 AGREGADO: Pasar el modo explícitamente
             timestamp: Date.now()
           }
         }));
-        console.log(`[App] 📍 Usuario en vivo agregado: ${userId}`);
+        console.log(`[App] 📍 Usuario en vivo agregado con modo: ${userId}`);
       }
       
       // El último usuario activado se convierte en el seleccionado (para centrar mapa)

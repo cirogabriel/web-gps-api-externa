@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Wrapper } from '@googlemaps/react-wrapper';
 import { ref, onValue } from 'firebase/database';
-import { db } from '../firebase';
+import { database } from '../firebase';
 import { getUserColor } from '../utils/userColors';
 
 const FirebaseMapComponent = ({ location, watchedUsers, trajectories }) => {
@@ -45,7 +45,7 @@ const FirebaseMapComponent = ({ location, watchedUsers, trajectories }) => {
 
     console.log(`[Firebase Map] 🎯 Iniciando listener en tiempo real para ${userId}`);
     
-    const userPositionRef = ref(db, `users/${userId}/currentPosition`);
+    const userPositionRef = ref(database, `users/${userId}/currentPosition`);
     const userColor = getColorForUser(userId);
     
     // Crear polyline inicial vacía

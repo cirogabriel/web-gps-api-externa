@@ -23,28 +23,28 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
     return () => clearInterval(interval);
   }, [loadUsers]);
 
-  // Función SIMPLE para ver en vivo - obtener posición y mostrarla (MULTIUSUARIO)
+  // Función MEJORADA para ver en vivo - escuchar cambios en tiempo real (MULTIUSUARIO)
   const handleStartLiveTracking = async (userId) => {
-    console.log(`[Ver en Vivo] 🎯 Obteniendo posición de ${userId}...`);
+    console.log(`[Ver en Vivo] 🎯 Iniciando tracking en tiempo real para ${userId}...`);
     
     try {
-      // 1. Obtener la posición actual de Firebase
-      const position = await getCurrentPosition(userId);
+      // 1. Obtener la posición inicial para verificar que existe
+      const initialPosition = await getCurrentPosition(userId);
       
-      if (position) {
-        console.log(`[Ver en Vivo] ✅ Posición obtenida:`, position);
+      if (initialPosition) {
+        console.log(`[Ver en Vivo] ✅ Posición inicial obtenida:`, initialPosition);
         
         // 2. Agregar a la lista de seguimiento
         setLiveWatching(prev => new Set([...prev, userId]));
         
-        // 3. Pasar al mapa indicando modo 'live' para soporte multiusuario
+        // 3. Iniciar el tracking en tiempo real con listener
         if (onWatchUser) {
-          onWatchUser(userId, position, 'live');
+          onWatchUser(userId, initialPosition, 'live');
         }
         
-        console.log(`[Ver en Vivo] 🗺️ Usuario ${userId} agregado al tracking en vivo`);
+        console.log(`[Ver en Vivo] 🗺️ Usuario ${userId} agregado al tracking en vivo con listener`);
       } else {
-        console.error(`[Ver en Vivo] ❌ No se encontró posición para ${userId}`);
+        console.error(`[Ver en Vivo] ❌ No se encontró posición inicial para ${userId}`);
         alert(`No hay posición actual disponible para ${userId}`);
       }
     } catch (error) {
