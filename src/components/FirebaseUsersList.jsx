@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
-import { User, MapPin, Clock, Eye, EyeOff, History, Play, Square, Layers } from 'lucide-react';
+import { User, MapPin, Clock, Eye, EyeOff, History, Play, Square, Layers, RotateCcw, Maximize2 } from 'lucide-react';
 import useFirebaseUsers from '../hooks/useFirebaseUsers';
 import { getUserColor, getUserColorLight } from '../utils/userColors';
 
@@ -169,19 +169,19 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
     <div className="p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-900">
-          Usuarios Disponibles ({users.length})
+          Usuarios ({users.length})
         </h3>
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           {(liveWatching.size > 0 || historicalWatching.size > 0) && (
             <>
               <Button
                 onClick={() => onFitAllUsers && onFitAllUsers()}
                 size="sm"
                 variant="ghost"
-                className="text-blue-600 hover:text-blue-700"
+                className="h-8 w-8 p-0 text-gray-500 hover:text-gray-600 hover:bg-gray-50"
+                title="Vista general"
               >
-                <Layers className="w-3 h-3 mr-1" />
-                Ajustar vista
+                <Maximize2 className="w-4 h-4" />
               </Button>
               
               {liveWatching.size > 0 && (
@@ -191,10 +191,10 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
                   }}
                   size="sm"
                   variant="ghost"
-                  className="text-red-600 hover:text-red-700"
+                  className="h-8 w-8 p-0 text-gray-500 hover:text-gray-600 hover:bg-gray-50"
+                  title="Detener todo en vivo"
                 >
-                  <Square className="w-3 h-3 mr-1" />
-                  Detener todo en vivo
+                  <Square className="w-4 h-4" />
                 </Button>
               )}
               
@@ -205,10 +205,10 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
                   }}
                   size="sm"
                   variant="ghost"
-                  className="text-orange-600 hover:text-orange-700"
+                  className="h-8 w-8 p-0 text-gray-500 hover:text-gray-600 hover:bg-gray-50"
+                  title="Ocultar todo histórico"
                 >
-                  <EyeOff className="w-3 h-3 mr-1" />
-                  Ocultar todo histórico
+                  <EyeOff className="w-4 h-4" />
                 </Button>
               )}
             </>
@@ -217,9 +217,10 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
             onClick={loadUsers}
             size="sm"
             variant="ghost"
-            className="text-blue-600 hover:text-blue-700"
+            className="h-8 w-8 p-0 text-gray-500 hover:text-gray-600 hover:bg-gray-50"
+            title="Actualizar"
           >
-            Actualizar
+            <RotateCcw className="w-4 h-4" />
           </Button>
         </div>
       </div>
