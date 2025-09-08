@@ -90,11 +90,6 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
     }
   };
 
-  // Función para cuando se carga histórico desde el modal
-  const handleHistoricalLoaded = (userId) => {
-    setHistoricalWatching(prev => new Set([...prev, userId]));
-  };
-
   // Función para verificar si un usuario tiene posición actual
   const hasCurrentPosition = (user) => {
     return user.currentPosition && 
