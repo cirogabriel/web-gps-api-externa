@@ -4,9 +4,14 @@ import { X } from "lucide-react"
 import { Button } from "./button"
 
 const Modal = ({ isOpen, onClose, children, className }) => {
-  console.log('[Modal] 🔍 Modal render:', { isOpen });
+  console.log('[Modal] 🔍 Modal render:', { isOpen, onClose: !!onClose });
   
-  if (!isOpen) return null
+  if (!isOpen) {
+    console.log('[Modal] ❌ Modal no está abierto, retornando null');
+    return null;
+  }
+
+  console.log('[Modal] ✅ Modal está abierto, renderizando...');
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center">
