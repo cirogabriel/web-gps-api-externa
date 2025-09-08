@@ -239,9 +239,8 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
             return (
               <Card 
                 key={user.id}
-                className={`p-3 transition-all border-l-4`}
+                className={`p-3 transition-all shadow-md hover:shadow-lg border border-gray-100 rounded-lg`}
                 style={{ 
-                  borderLeftColor: userColor,
                   backgroundColor: isWatching ? userColorLight : 'white'
                 }}
               >
@@ -269,13 +268,6 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
                           style={{ backgroundColor: userColor }}
                           title={`Color del usuario: ${userColor}`}
                         />
-                        <Badge className={`text-xs px-2 py-0.5 ${
-                          hasPosition 
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {hasPosition ? 'Con ubicación' : 'Sin ubicación'}
-                        </Badge>
                       </div>
                       
                       <div className="flex items-center gap-3 mt-1">

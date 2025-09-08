@@ -167,6 +167,7 @@ export default function GPSTracker() {
       setSelectedUser('FIT_ALL_USERS');
     }
   }
+
   // Funciones para el modal de histórico
   const handleOpenHistoryModal = (userId) => {
     console.log('[App] 📈 Abriendo modal de histórico para:', userId);
