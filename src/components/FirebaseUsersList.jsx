@@ -93,13 +93,6 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
     }
   };
 
-  // Función para verificar si un usuario tiene posición actual
-  const hasCurrentPosition = (user) => {
-    return user.currentPosition && 
-           user.currentPosition.latitude && 
-           user.currentPosition.longitude;
-  };
-
   // Función para obtener el tiempo transcurrido
   const getTimeAgo = (timestamp) => {
     if (!timestamp) return 'Desconocido';
@@ -274,7 +267,6 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
           .map((user) => {
             const isWatching = liveWatching.has(user.id);
             const isWatchingHistorical = historicalWatching.has(user.id);
-            const hasPosition = hasCurrentPosition(user);
             const timeAgo = getTimeAgo(user.currentPosition?.timestamp || user.lastSeen);
             const currentPos = user.currentPosition;
             const userColor = getUserColor(user.id);
@@ -342,14 +334,11 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
                           handleStartLiveTracking(user.id);
                         }
                       }}
-                      disabled={!hasPosition && !isWatching}
                       size="sm"
                       className={`text-xs px-2 py-1 ${
                         isWatching
                           ? 'bg-red-600 hover:bg-red-700 text-white'
-                          : hasPosition
-                            ? 'bg-green-600 hover:bg-green-700 text-white'
-                            : 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                          : 'bg-green-600 hover:bg-green-700 text-white'
                       }`}
                     >
                       {isWatching ? (
@@ -368,7 +357,6 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
                     {/* Botón Ver histórico / Ocultar histórico */}
                     <Button
                       onClick={() => handleShowHistory(user.id)}
-                      disabled={!user.currentPosition}
                       size="sm"
                       variant="outline"
                       className={`text-xs px-2 py-1 ${

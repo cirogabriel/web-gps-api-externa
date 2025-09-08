@@ -69,24 +69,13 @@ const FirebaseMapComponent = ({
       });
       polylineRefs.current[userId] = polyline;
 
-      // Marcador de inicio (verde) - pin clásico
-      const firstPoint = trajectory[0];
-      const startMarker = new window.google.maps.Marker({
-        position: { lat: firstPoint.latitude, lng: firstPoint.longitude },
-        map: map,
-        title: `${userId} - Inicio del recorrido`,
-        icon: createUserIcon('#10B981', true),
-        zIndex: 1000
-      });
-      userMarkersRef.current[`${userId}_start`] = startMarker;
-
-      // Marcador de fin (rojo) - pin clásico
+      // Solo marcador de posición final (actual)
       const lastPoint = trajectory[trajectory.length - 1];
       const endMarker = new window.google.maps.Marker({
         position: { lat: lastPoint.latitude, lng: lastPoint.longitude },
         map: map,
-        title: `${userId} - Fin del recorrido`,
-        icon: createUserIcon('#EF4444', true),
+        title: `${userId} - Posición actual`,
+        icon: createUserIcon(color, true),
         zIndex: 1000
       });
       userMarkersRef.current[`${userId}_end`] = endMarker;
