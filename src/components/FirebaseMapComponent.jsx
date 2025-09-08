@@ -20,19 +20,22 @@ const FirebaseMapComponent = ({ location, watchedUsers, trajectories }) => {
     return getUserColor(userId);
   }, []);
 
-  // Función para crear íconos de usuario personalizados
+  // Función para crear íconos de usuario personalizados - Pin clásico de Google Maps
   const createUserIcon = useCallback((color, isLarge = false) => {
-    const size = isLarge ? 24 : 16;
-    const strokeWidth = isLarge ? 3 : 2;
+    const scale = isLarge ? 1.2 : 0.8;
+    
+    // SVG del pin clásico de Google Maps
+    const pinSvg = `
+      <svg width="24" height="32" viewBox="0 0 24 32" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 0C7.589 0 4 3.589 4 8c0 7 8 24 8 24s8-17 8-24c0-4.411-3.589-8-8-8z" fill="${color}" stroke="#FFFFFF" stroke-width="2"/>
+        <circle cx="12" cy="8" r="3" fill="white"/>
+      </svg>
+    `;
     
     return {
-      path: window.google.maps.SymbolPath.CIRCLE,
-      fillColor: color,
-      fillOpacity: 1.0,
-      scale: size / 2,
-      strokeColor: '#FFFFFF',
-      strokeWeight: strokeWidth,
-      anchor: new window.google.maps.Point(0, 0)
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(pinSvg),
+      scaledSize: new window.google.maps.Size(24 * scale, 32 * scale),
+      anchor: new window.google.maps.Point(12 * scale, 32 * scale)
     };
   }, []);
 

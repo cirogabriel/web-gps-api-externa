@@ -287,7 +287,7 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
                         className="p-2 rounded-full"
                         style={{ backgroundColor: userColorLight }}
                       >
-                        <User 
+                        <MapPin 
                           className="w-4 h-4" 
                           style={{ color: userColor }}
                         />
@@ -300,10 +300,18 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
                           {user.name || user.id}
                         </p>
                         <div 
-                          className="w-3 h-3 rounded-full border border-white shadow-sm flex-shrink-0"
-                          style={{ backgroundColor: userColor }}
+                          className="w-4 h-4 flex-shrink-0 relative"
                           title={`Color del usuario: ${userColor}`}
-                        />
+                        >
+                          <svg 
+                            viewBox="0 0 24 24" 
+                            className="w-full h-full"
+                            fill={userColor}
+                          >
+                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                            <circle cx="12" cy="9" r="2.5" fill="white"/>
+                          </svg>
+                        </div>
                       </div>
                       
                       <div className="flex items-center gap-3 mt-1">
