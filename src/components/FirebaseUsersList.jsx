@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
-import { User, MapPin, Clock, Eye, EyeOff, History, Play, Square } from 'lucide-react';
+import { User, MapPin, Clock, Eye, EyeOff, History, Play, Square, Layers } from 'lucide-react';
 import useFirebaseUsers from '../hooks/useFirebaseUsers';
 import { getUserColor, getUserColorLight } from '../utils/userColors';
 
-export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenHistoryModal }) {
+export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenHistoryModal, onFitAllUsers }) {
   const { users, loading, error, loadUsers, getCurrentPosition } = useFirebaseUsers();
   const [liveWatching, setLiveWatching] = useState(new Set());
-  const [userPositions, setUserPositions] = useState({});
+  const [historicalWatching, setHistoricalWatching] = useState(new Set());
 
   // Cargar usuarios al montar el componente
   useEffect(() => {
@@ -20,7 +20,7 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
     return () => clearInterval(interval);
   }, [loadUsers]);
 
-  // Función SIMPLE para ver en vivo - obtener posición y mostrarla
+  // Función SIMPLE para ver en vivo - obtener posición y mostrarla (MULTIUSUARIO)
   const handleStartLiveTracking = async (userId) => {
     console.log(`[Ver en Vivo] 🎯 Obteniendo posición de ${userId}...`);
     
@@ -34,13 +34,12 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
         // 2. Agregar a la lista de seguimiento
         setLiveWatching(prev => new Set([...prev, userId]));
         
-        // 3. Pasar al mapa para que se mueva allí (IGUAL QUE EL HISTÓRICO)
+        // 3. Pasar al mapa indicando modo 'live' para soporte multiusuario
         if (onWatchUser) {
-          // Crear estructura como el histórico pero con una sola posición
-          onWatchUser(userId, position);
+          onWatchUser(userId, position, 'live');
         }
         
-        console.log(`[Ver en Vivo] 🗺️ Posición enviada al mapa para ${userId}`);
+        console.log(`[Ver en Vivo] 🗺️ Usuario ${userId} agregado al tracking en vivo`);
       } else {
         console.error(`[Ver en Vivo] ❌ No se encontró posición para ${userId}`);
         alert(`No hay posición actual disponible para ${userId}`);
@@ -51,7 +50,7 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
     }
   };
 
-  // Función SIMPLE para detener seguimiento
+  // Función SIMPLE para detener seguimiento (MULTIUSUARIO)
   const handleStopLiveTracking = (userId) => {
     console.log(`[Ver en Vivo] 🛑 Deteniendo seguimiento de ${userId}`);
     
@@ -62,16 +61,38 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
       return newSet;
     });
     
-    // Notificar al componente padre para limpiar el mapa
+    // Notificar al componente padre para limpiar el mapa, indicando modo 'live'
     if (onStopWatching) {
-      onStopWatching(userId);
+      onStopWatching(userId, 'live');
     }
   };
 
-  // Función para abrir el modal de histórico
+  // Función para manejar histórico (MULTIUSUARIO)
   const handleShowHistory = (userId) => {
-    console.log('[FirebaseUsersList] 📈 Delegando apertura de modal al componente padre para:', userId);
-    onOpenHistoryModal(userId);
+    const isWatchingHistorical = historicalWatching.has(userId);
+    
+    if (isWatchingHistorical) {
+      // Dejar de ver histórico
+      console.log(`[Histórico] 🛑 Ocultando histórico de ${userId}`);
+      setHistoricalWatching(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(userId);
+        return newSet;
+      });
+      
+      if (onStopWatching) {
+        onStopWatching(userId, 'historical');
+      }
+    } else {
+      // Mostrar histórico
+      console.log(`[Histórico] 📈 Delegando apertura de modal al componente padre para: ${userId}`);
+      onOpenHistoryModal(userId);
+    }
+  };
+
+  // Función para cuando se carga histórico desde el modal
+  const handleHistoricalLoaded = (userId) => {
+    setHistoricalWatching(prev => new Set([...prev, userId]));
   };
 
   // Función para verificar si un usuario tiene posición actual
@@ -156,18 +177,46 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
           Usuarios Disponibles ({users.length})
         </h3>
         <div className="flex gap-2">
-          {liveWatching.size > 0 && (
-            <Button
-              onClick={() => {
-                liveWatching.forEach(userId => handleStopLiveTracking(userId));
-              }}
-              size="sm"
-              variant="ghost"
-              className="text-red-600 hover:text-red-700"
-            >
-              <Square className="w-3 h-3 mr-1" />
-              Detener todo
-            </Button>
+          {(liveWatching.size > 0 || historicalWatching.size > 0) && (
+            <>
+              <Button
+                onClick={() => onFitAllUsers && onFitAllUsers()}
+                size="sm"
+                variant="ghost"
+                className="text-blue-600 hover:text-blue-700"
+              >
+                <Layers className="w-3 h-3 mr-1" />
+                Ajustar vista
+              </Button>
+              
+              {liveWatching.size > 0 && (
+                <Button
+                  onClick={() => {
+                    liveWatching.forEach(userId => handleStopLiveTracking(userId));
+                  }}
+                  size="sm"
+                  variant="ghost"
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <Square className="w-3 h-3 mr-1" />
+                  Detener todo en vivo
+                </Button>
+              )}
+              
+              {historicalWatching.size > 0 && (
+                <Button
+                  onClick={() => {
+                    historicalWatching.forEach(userId => handleShowHistory(userId));
+                  }}
+                  size="sm"
+                  variant="ghost"
+                  className="text-orange-600 hover:text-orange-700"
+                >
+                  <EyeOff className="w-3 h-3 mr-1" />
+                  Ocultar todo histórico
+                </Button>
+              )}
+            </>
           )}
           <Button
             onClick={loadUsers}
@@ -185,9 +234,10 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
           .sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0))
           .map((user) => {
             const isWatching = liveWatching.has(user.id);
+            const isWatchingHistorical = historicalWatching.has(user.id);
             const hasPosition = hasCurrentPosition(user);
             const timeAgo = getTimeAgo(user.currentPosition?.timestamp || user.lastSeen);
-            const currentPos = userPositions[user.id] || user.currentPosition;
+            const currentPos = user.currentPosition;
             const userColor = getUserColor(user.id);
             const userColorLight = getUserColorLight(user.id);
 
@@ -284,16 +334,20 @@ export default function FirebaseUsersList({ onWatchUser, onStopWatching, onOpenH
                       )}
                     </Button>
 
-                    {/* Botón Ver histórico */}
+                    {/* Botón Ver histórico / Ocultar histórico */}
                     <Button
                       onClick={() => handleShowHistory(user.id)}
                       disabled={!user.currentPosition}
                       size="sm"
                       variant="outline"
-                      className="text-xs px-2 py-1 border-gray-300 text-gray-700 hover:bg-gray-50"
+                      className={`text-xs px-2 py-1 ${
+                        isWatchingHistorical
+                          ? 'border-orange-400 bg-orange-50 text-orange-700 hover:bg-orange-100'
+                          : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}
                     >
                       <History className="w-3 h-3 mr-1" />
-                      Histórico
+                      {isWatchingHistorical ? 'Ocultar histórico' : 'Ver histórico'}
                     </Button>
                   </div>
                 </div>

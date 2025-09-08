@@ -67,52 +67,100 @@ export default function GPSTracker() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Función para observar usuarios (FUNCIONA PARA HISTÓRICO Y LIVE TRACKING)
-  const handleWatchUsers = (userId, positionData) => {
-    console.log('[App] 📍 Datos recibidos para:', userId, 'Tipo:', Array.isArray(positionData) ? 'Array de posiciones' : 'Posición única');
+  // Función para observar usuarios (SOPORTE MULTIUSUARIO)
+  const handleWatchUsers = (userId, positionData, mode = 'live') => {
+    console.log(`[App] 📍 Agregando usuario ${userId} en modo ${mode}:`, Array.isArray(positionData) ? `${positionData.length} posiciones` : 'Posición única');
     
     if (userId && positionData) {
-      setWatchedUsers(prev => ({
-        ...prev,
-        [userId]: {
-          position: positionData,
-          timestamp: Date.now()
-        }
-      }))
-      setSelectedUser(userId)
-      
-      // Limpiar trayectorias cuando se inicia live tracking
-      if (!Array.isArray(positionData)) {
-        setUserTrajectories({});
+      // Para modo histórico: agregar a trayectorias
+      if (mode === 'historical' && Array.isArray(positionData)) {
+        setUserTrajectories(prev => ({
+          ...prev,
+          [userId]: positionData
+        }));
+        console.log(`[App] 🗺️ Trayectoria histórica agregada para ${userId}`);
       }
+      
+      // Para modo en vivo: agregar a usuarios observados
+      if (mode === 'live' && !Array.isArray(positionData)) {
+        setWatchedUsers(prev => ({
+          ...prev,
+          [userId]: {
+            position: positionData,
+            timestamp: Date.now()
+          }
+        }));
+        console.log(`[App] 📍 Usuario en vivo agregado: ${userId}`);
+      }
+      
+      // El último usuario activado se convierte en el seleccionado (para centrar mapa)
+      setSelectedUser(userId);
+      console.log(`[App] 🎯 Mapa se centrará en: ${userId}`);
     }
   }
 
-  // Función para detener observación de un usuario
-  const handleStopWatching = (userId) => {
-    setWatchedUsers(prev => {
-      const newWatchedUsers = { ...prev }
-      delete newWatchedUsers[userId]
-      return newWatchedUsers
-    })
+  // Función para detener observación de un usuario (SOPORTE MULTIUSUARIO)
+  const handleStopWatching = (userId, mode = 'live') => {
+    console.log(`[App] 🛑 Deteniendo seguimiento de ${userId} en modo ${mode}`);
     
+    // Remover de usuarios en vivo
+    if (mode === 'live') {
+      setWatchedUsers(prev => {
+        const newWatchedUsers = { ...prev };
+        delete newWatchedUsers[userId];
+        return newWatchedUsers;
+      });
+    }
+    
+    // Remover de trayectorias históricas
+    if (mode === 'historical') {
+      setUserTrajectories(prev => {
+        const newTrajectories = { ...prev };
+        delete newTrajectories[userId];
+        return newTrajectories;
+      });
+    }
+    
+    // Si era el usuario seleccionado, no cambiar la vista del mapa automáticamente
+    // (mantener la vista actual como se requiere)
     if (selectedUser === userId) {
-      setSelectedUser(null)
+      console.log(`[App] 📍 Usuario ${userId} era el seleccionado, manteniendo vista actual`);
+      // setSelectedUser(null); // No limpiar para mantener vista
     }
   }
 
-  // Función para mostrar histórico
+  // Función para mostrar histórico (SOPORTE MULTIUSUARIO)
   const handleShowHistory = (userId, trajectoryData) => {
-    console.log('[App] 📈 Mostrando histórico para:', userId, 'Datos:', trajectoryData);
+    console.log(`[App] 📈 Agregando histórico para ${userId}:`, trajectoryData);
     
+    // Agregar trayectoria histórica sin limpiar las demás
     setUserTrajectories(prev => ({
       ...prev,
       [userId]: trajectoryData
-    }))
-    setSelectedUser(userId)
+    }));
     
-    // Limpiar usuarios observados para mostrar solo el histórico
-    setWatchedUsers({})
+    // El último usuario activado se convierte en el seleccionado (para centrar mapa)
+    setSelectedUser(userId);
+    console.log(`[App] 🎯 Mapa se centrará en histórico de: ${userId}`);
+    
+    // NO limpiar usuarios en vivo - permitir ambos modos simultáneamente
+    // setWatchedUsers({}); // REMOVIDO para soporte multiusuario
+  }
+
+  // Función para ajustar vista a todos los usuarios activos
+  const handleFitAllUsers = () => {
+    const allActiveUsers = [
+      ...Object.keys(watchedUsers),
+      ...Object.keys(userTrajectories)
+    ];
+    const uniqueUsers = [...new Set(allActiveUsers)];
+    
+    console.log(`[App] 🗺️ Ajustando vista para mostrar ${uniqueUsers.length} usuarios:`, uniqueUsers);
+    
+    if (uniqueUsers.length > 0) {
+      // Establecer un flag especial para indicar que se debe usar fitBounds
+      setSelectedUser('FIT_ALL_USERS');
+    }
   }
 
   // Función de prueba para Firebase
@@ -172,7 +220,7 @@ export default function GPSTracker() {
     accuracy: 50,
     timestamp: Date.now(),
     source: 'default'
-  }
+  };
   
   // Debug logging
   useEffect(() => {
@@ -211,6 +259,7 @@ export default function GPSTracker() {
           onStopWatching={handleStopWatching}
           onShowHistory={handleShowHistory}
           onOpenHistoryModal={handleOpenHistoryModal}
+          onFitAllUsers={handleFitAllUsers}
         />
 
         {/* Controles de observación */}
